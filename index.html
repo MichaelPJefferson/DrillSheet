@@ -1139,7 +1139,7 @@
     <button class="btn btn-play"  id="btnStart" onclick="timerStart()">▶ <span class="btn-label">Start</span></button>
     <button class="btn btn-pause" id="btnPause" onclick="timerPause()" style="display:none">⏸ <span class="btn-label">Pause</span></button>
     <button class="btn btn-play"  id="btnResume" onclick="timerResume()" style="display:none">▶ <span class="btn-label">Resume</span></button>
-    <button class="btn btn-stop"  id="btnStop"  onclick="if(confirm('Stop the timer and reset?'))timerStop()" style="display:none">■ <span class="btn-label">Stop</span></button>
+    <button class="btn btn-stop"  id="btnStop"  onclick="confirmStop()" style="display:none">■ <span class="btn-label">Stop</span></button>
     <button class="btn btn-mode"  id="btnSkipPrev" onclick="timerSkip(-1)" style="display:none">⏮ <span class="btn-label">Prev</span></button>
     <button class="btn btn-mode"  id="btnSkipNext" onclick="timerSkip(1)"  style="display:none">⏭ <span class="btn-label">Next</span></button>
     <div class="pb-display">
@@ -1302,10 +1302,13 @@
     ctx.fillStyle = '#fff';
     ctx.fill();
 
-    requestAnimationFrame(draw);
+    if (document.visibilityState === 'visible') requestAnimationFrame(draw);
   }
 
   draw();
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') requestAnimationFrame(draw);
+  });
 })();
 
 // ── Analog Clock Drag ──────────────────────────────────────────────────────
@@ -1591,7 +1594,7 @@ function badgeHTML(c) {
   if (!c) return '';
   const { cls, label } = cadenceInfo(c);
   const bpm = (c.match(/(\d+\s*[-–]\s*\d+)/) || [])[1];
-  return `<div><span class="badge badge-${cls}">${label}</span>${bpm ? `<div class="bpm-label">${bpm} RPM</div>` : ''}</div>`;
+  return `<div><span class="badge badge-${cls}">${escH(label)}</span>${bpm ? `<div class="bpm-label">${escH(bpm)} RPM</div>` : ''}</div>`;
 }
 
 // ── Render ─────────────────────────────────────────────────────────────────
@@ -1948,9 +1951,8 @@ function timerStart() {
       clearInterval(cd);
       overlay.style.display = 'none';
       overlay.classList.remove('pop');
-      timerState   = 'running';
-      timerElapsed = 0;
-      timerTickAt  = Date.now();
+      timerState  = 'running';
+      timerTickAt = Date.now();
       document.getElementById('btnPause').style.display    = '';
       document.getElementById('btnResume').style.display   = 'none';
       document.getElementById('btnStop').style.display     = '';
@@ -2005,6 +2007,36 @@ function timerResume() {
   }, 1000);
 }
 
+function confirmStop() {
+  const btn = document.getElementById('btnStop');
+  const savedHTML  = btn.innerHTML;
+  const savedClass = btn.className;
+  btn.innerHTML = 'Sure?&nbsp;';
+  btn.onclick = null;
+  btn.style.cursor = 'default';
+
+  const yes = document.createElement('button');
+  yes.textContent = 'Yes';
+  yes.className = 'btn btn-stop';
+  yes.style.cssText = 'padding:0.2rem 0.55rem;font-size:0.85rem;';
+  yes.onclick = e => { e.stopPropagation(); timerStop(); };
+
+  const no = document.createElement('button');
+  no.textContent = 'No';
+  no.className = 'btn btn-mode';
+  no.style.cssText = 'padding:0.2rem 0.55rem;font-size:0.85rem;';
+  no.onclick = e => {
+    e.stopPropagation();
+    btn.innerHTML  = savedHTML;
+    btn.className  = savedClass;
+    btn.style.cursor = '';
+    btn.onclick = confirmStop;
+  };
+
+  btn.appendChild(yes);
+  btn.appendChild(no);
+}
+
 function timerStop() {
   clearInterval(timerInterval);
   timerState   = 'stopped';
@@ -2018,6 +2050,11 @@ function timerStop() {
   clearRowHighlights();
   releaseWakeLock();
   syncFocusCardAction();
+  const btnStop = document.getElementById('btnStop');
+  btnStop.innerHTML = '■ <span class="btn-label">Stop</span>';
+  btnStop.className = 'btn btn-stop';
+  btnStop.style.cursor = '';
+  btnStop.onclick = confirmStop;
 }
 
 function timerSkip(dir) {
@@ -2076,21 +2113,14 @@ function timerSeekTo(idx) {
   const newElapsed = rowCumulative[idx] * 1000;
 
   if (timerState === 'stopped') {
-    // Transition to paused-at-position so user can Resume or Stop
+    // Update browse position without changing state — Start will begin from here
     timerElapsed = newElapsed;
-    timerState   = 'paused';
-    document.getElementById('btnStart').style.display    = 'none';
-    document.getElementById('btnPause').style.display    = 'none';
-    document.getElementById('btnResume').style.display   = '';
-    document.getElementById('btnStop').style.display     = '';
-    document.getElementById('btnSkipPrev').style.display = '';
-    document.getElementById('btnSkipNext').style.display = '';
-    // Fake timerTickAt so elapsed math works (paused state doesn't use it, but be safe)
-    timerTickAt = Date.now();
-    syncFocusCardAction();
+    timerTickAt  = Date.now();
+    timerTick();
+    return;
   } else {
     timerElapsed = newElapsed;
-    if (timerState === 'running') timerTickAt = Date.now();
+    timerTickAt  = Date.now();
   }
   timerTick();
 }
@@ -2743,7 +2773,8 @@ function applyFontSize(val) {
 }
 
 function resetFontSize() {
-  applyFontSize(1);
+  const device = localStorage.getItem(DEVICE_KEY) || detectDevice();
+  applyFontSize(FS_DEFAULTS[device] || 1.0);
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────
