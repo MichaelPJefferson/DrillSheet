@@ -1,0 +1,2582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Drill Sheet</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;500;600;700;800;900&family=Barlow:wght@300;400;500;600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/nosleep/0.12.0/NoSleep.min.js"></script>
+  <style>
+    :root {
+      --bg-primary: #F4F6FA;
+      --bg-secondary: #FFFFFF;
+      --bg-tertiary: #EEF1F7;
+      --bg-card: #E8ECF5;
+      --accent-primary: #0069B4;
+      --accent-secondary: #D6274A;
+      --text-primary: #111827;
+      --text-secondary: #4B5563;
+      --text-dim: #9CA3AF;
+      --border: rgba(0,0,0,0.09);
+      --border-accent: rgba(0,105,180,0.25);
+      --cadence-easy: #16A34A;
+      --cadence-mod: #B45309;
+      --cadence-hard: #C2410C;
+      --cadence-vhard: #B91C1C;
+      --cadence-default: #4338CA;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root { --fs: 1; }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: 'Barlow', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        radial-gradient(ellipse at 20% 0%, rgba(0,105,180,0.06) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 100%, rgba(214,39,74,0.04) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Header ── */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(244,246,250,0.93);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 160px 0 2rem;
+      height: 68px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+    }
+
+    .logo-hex {
+      width: 36px;
+      height: 36px;
+      background: var(--accent-primary);
+      clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+      display: grid;
+      place-items: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .logo-text {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1.75rem;
+      font-weight: 800;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+    }
+    .logo-text em { color: var(--accent-primary); font-style: normal; }
+
+    .clock-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* ── Analog Clock Overlay ── */
+    #analogClock {
+      position: fixed;
+      top: 0;
+      right: 0;
+      z-index: 200;
+      border-radius: 10px;
+      background: var(--accent-primary);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.18), 0 0 0 1px var(--border);
+      cursor: grab;
+      user-select: none;
+    }
+    #analogClock.dragging { cursor: grabbing; }
+
+    /* ── Controls ── */
+    .controls {
+      padding: 0.85rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      flex-wrap: wrap;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-secondary);
+      position: relative;
+      z-index: 1;
+    }
+
+    .select-wrap {
+      position: relative;
+      flex: 1;
+      max-width: 420px;
+      min-width: 180px;
+    }
+    .select-wrap select {
+      width: 100%;
+      background: var(--bg-card);
+      border: 1px solid var(--border-accent);
+      color: var(--text-primary);
+      font-family: 'Barlow', sans-serif;
+      font-size: 0.92rem;
+      font-weight: 500;
+      padding: 0.58rem 2.4rem 0.58rem 0.9rem;
+      border-radius: 6px;
+      cursor: pointer;
+      appearance: none;
+      outline: none;
+      transition: border-color 0.18s;
+    }
+    .select-wrap select:hover, .select-wrap select:focus { border-color: var(--accent-primary); }
+    .select-wrap::after {
+      content: '▾';
+      position: absolute;
+      right: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--accent-primary);
+      pointer-events: none;
+    }
+
+    .btn {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.92rem;
+      font-weight: 700;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      padding: 0.52rem 1.1rem;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.18s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      white-space: nowrap;
+    }
+    .btn-primary { background: var(--accent-primary); color: #fff; }
+    .btn-primary:hover { background: #0058A0; transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0,105,180,0.28); }
+    .btn-danger { background: transparent; color: var(--accent-secondary); border: 1px solid rgba(255,61,113,0.3); }
+    .btn-danger:hover { background: rgba(255,61,113,0.1); border-color: var(--accent-secondary); }
+
+    .file-count {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      padding: 0.28rem 0.65rem;
+      background: var(--bg-card);
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    #fileInput { display: none; }
+    #mgmtBtns { display: flex; align-items: center; gap: 0.85rem; }
+
+
+    .server-badge {
+      font-size: 0.72rem;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 0.25rem 0.6rem;
+      border-radius: 4px;
+      background: #DCFCE7;
+      color: var(--cadence-easy);
+      border: 1px solid #86EFAC;
+      white-space: nowrap;
+    }
+
+    /* ── Font size control ── */
+    .font-size-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-left: auto;
+    }
+    .fs-label {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--text-dim);
+      user-select: none;
+    }
+    .fs-label-lg { font-size: 1.1rem; }
+    #fsSlider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 90px;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--bg-card);
+      outline: none;
+      cursor: pointer;
+      border: 1px solid var(--border);
+    }
+    #fsSlider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: var(--accent-primary);
+      cursor: pointer;
+      border: 2px solid #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    }
+    #fsSlider::-moz-range-thumb {
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: var(--accent-primary);
+      cursor: pointer;
+      border: 2px solid #fff;
+    }
+    .fs-reset {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text-dim);
+      font-size: 0.85rem;
+      width: 22px; height: 22px;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      transition: all 0.15s;
+    }
+    .fs-reset:hover { border-color: var(--accent-primary); color: var(--accent-primary); }
+
+    /* ── Main ── */
+    .main {
+      position: relative;
+      z-index: 1;
+      padding: 1.75rem 2rem 3rem;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .sheet-header {
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1.5rem;
+    }
+    .sheet-header-left { min-width: 0; }
+    .sheet-title {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 2.2rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      line-height: 1;
+    }
+    .sheet-meta {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-top: 0.3rem;
+      letter-spacing: 0.04em;
+    }
+
+    /* ── Total time remaining widget ── */
+    .time-remaining-widget {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      flex-shrink: 0;
+    }
+    .trw-label {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 0.1rem;
+    }
+    .trw-time {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 3.2rem;
+      font-weight: 400;
+      line-height: 1;
+      color: var(--accent-primary);
+      letter-spacing: 0.04em;
+      transition: color 0.3s;
+    }
+    .trw-time.warning { color: var(--cadence-hard); }
+    .trw-time.done    { color: var(--text-dim); }
+    .trw-status {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      margin-top: 0.2rem;
+      font-family: 'Barlow Condensed', sans-serif;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      height: 1em;
+    }
+
+    /* ── Table ── */
+    .table-wrapper {
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+    }
+
+    table { width: 100%; border-collapse: collapse; }
+
+    thead {
+      background: var(--bg-card);
+      border-bottom: 2px solid var(--accent-primary);
+    }
+    thead th {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.73rem;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--accent-primary);
+      padding: 0.85rem 1.1rem;
+      text-align: left;
+    }
+    thead th:first-child { text-align: center; width: 44px; }
+
+    tbody tr.ex-row {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      transition: background 0.14s;
+      cursor: pointer;
+    }
+    tbody tr.ex-row:nth-child(even) { background: var(--bg-tertiary); }
+    tbody tr.ex-row:hover { background: rgba(0,105,180,0.05); }
+
+    /* ── Row actions (insert / delete) ── */
+    tbody td:first-child { position: relative; }
+    .row-num { display: block; }
+    .row-acts { display: none; grid-template-columns: 1fr 1fr; gap: 2px; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 5; }
+    tbody tr.ex-row:hover .row-num { visibility: hidden; }
+    tbody tr.ex-row:hover .row-acts { display: grid; }
+    .btn-ra.del { grid-column: 1 / -1; }
+    .btn-ra {
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 0.6rem;
+      font-family: inherit;
+      line-height: 1;
+      padding: 2px 5px;
+      white-space: nowrap;
+    }
+    .btn-ra:hover { background: var(--accent-primary); color: #fff; border-color: var(--accent-primary); }
+    .btn-ra.del:hover { background: #D6274A; border-color: #D6274A; }
+
+    /* ── Flag dot (# cell) ── */
+    .flag-btn {
+      display: block;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      border: 1.5px solid rgba(0,0,0,0.12);
+      background: transparent;
+      margin: 4px auto 0;
+      cursor: pointer;
+      padding: 0;
+      flex-shrink: 0;
+      transition: background 0.15s, border-color 0.15s, transform 0.12s;
+      position: relative;
+      z-index: 6;
+    }
+    .flag-btn:hover { transform: scale(1.5); }
+    .flag-btn.flag-green  { background: var(--cadence-easy);  border-color: var(--cadence-easy); }
+    .flag-btn.flag-yellow { background: var(--cadence-mod);   border-color: var(--cadence-mod); }
+    .flag-btn.flag-red    { background: var(--cadence-vhard); border-color: var(--cadence-vhard); }
+
+    /* ── Flag pill (focus card) ── */
+    .flag-btn-focus {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 0.2rem 0.6rem;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .flag-btn-focus:hover { border-color: var(--accent-primary); color: var(--text-primary); }
+    .flag-btn-focus.flag-green  { background: #DCFCE7; color: var(--cadence-easy);  border-color: #86EFAC; }
+    .flag-btn-focus.flag-yellow { background: #FEF3C7; color: var(--cadence-mod);   border-color: #FCD34D; }
+    .flag-btn-focus.flag-red    { background: #FEE2E2; color: var(--cadence-vhard); border-color: #FCA5A5; }
+
+    /* ── Inline edit ── */
+    tbody td.editable { position: relative; }
+    tbody td.editable:hover::after {
+      content: '✎';
+      position: absolute;
+      top: 6px; right: 6px;
+      font-size: 0.7rem;
+      color: var(--text-dim);
+    }
+    tbody td.editable:hover { background: rgba(0,105,180,0.06); }
+    tbody td.editing { background: rgba(0,105,180,0.08) !important; padding: 0.4rem 0.6rem; }
+
+    .cell-input {
+      width: 100%;
+      background: var(--bg-secondary);
+      border: 2px solid var(--accent-primary);
+      border-radius: 4px;
+      color: var(--text-primary);
+      font-family: 'Barlow', sans-serif;
+      font-size: 0.92rem;
+      padding: 0.3rem 0.5rem;
+      outline: none;
+      resize: vertical;
+      box-shadow: 0 0 0 3px rgba(0,105,180,0.15);
+    }
+    .cell-input.drill-input {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1.08rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .edit-hint {
+      font-size: 0.68rem;
+      color: var(--text-dim);
+      margin-top: 0.25rem;
+    }
+
+    tbody td {
+      padding: 0.85rem 1.1rem;
+      vertical-align: top;
+      font-size: calc(0.92rem * var(--fs));
+    }
+    tbody td:first-child {
+      text-align: center;
+      width: 44px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      vertical-align: middle;
+    }
+
+    .drill-name {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: calc(1.08rem * var(--fs));
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      white-space: nowrap;
+    }
+
+    .song-name { font-size: calc(0.9rem * var(--fs)); font-weight: 500; }
+    .song-dur {
+      font-size: calc(0.78rem * var(--fs));
+      color: var(--text-secondary);
+      margin-top: 0.12rem;
+      font-family: 'Share Tech Mono', monospace;
+    }
+
+    .details-list { display: flex; flex-direction: column; gap: 0.28rem; }
+    .detail-line {
+      font-size: calc(0.86rem * var(--fs));
+      color: var(--text-secondary);
+      padding-left: 0.6rem;
+      border-left: 2px solid rgba(255,255,255,0.08);
+    }
+    .detail-line.first {
+      border-left-color: rgba(0,105,180,0.45);
+      color: var(--text-primary);
+    }
+
+    /* ── Cadence badges ── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: calc(0.78rem * var(--fs));
+      font-weight: 700;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      padding: 0.2rem 0.55rem;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+    .badge-easy   { background: #DCFCE7; color: var(--cadence-easy);    border: 1px solid #86EFAC; }
+    .badge-mod    { background: #FEF3C7; color: var(--cadence-mod);     border: 1px solid #FCD34D; }
+    .badge-hard   { background: #FFEDD5; color: var(--cadence-hard);    border: 1px solid #FDBA74; }
+    .badge-vhard  { background: #FEE2E2; color: var(--cadence-vhard);   border: 1px solid #FCA5A5; }
+    .badge-def    { background: #EEF2FF; color: var(--cadence-default); border: 1px solid #A5B4FC; }
+
+    .cadence-block { display: flex; flex-direction: column; gap: 0.3rem; }
+    .bpm-label {
+      font-size: 0.72rem;
+      font-family: 'Share Tech Mono', monospace;
+      color: var(--text-dim);
+      margin-top: 0.1rem;
+    }
+
+    /* ── Empty State ── */
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem 2rem;
+    }
+    .empty-icon { font-size: 3.5rem; margin-bottom: 0.75rem; opacity: 0.25; }
+    .empty-title {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1.6rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-secondary);
+      margin-bottom: 0.4rem;
+    }
+    .empty-sub { font-size: 0.88rem; color: var(--text-dim); }
+
+    /* ── Upload Drop Zone ── */
+    .drop-zone {
+      border: 2px dashed var(--border-accent);
+      border-radius: 10px;
+      padding: 2.5rem 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: rgba(0,229,255,0.02);
+      margin-top: 1.75rem;
+      max-width: 520px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .drop-zone:hover, .drop-zone.drag-over {
+      border-color: var(--accent-primary);
+      background: rgba(0,105,180,0.05);
+    }
+    .drop-icon { font-size: 2.2rem; margin-bottom: 0.6rem; }
+    .drop-title {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1.2rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent-primary);
+      margin-bottom: 0.25rem;
+    }
+    .drop-sub { font-size: 0.82rem; color: var(--text-secondary); }
+
+    /* ── Playback bar ── */
+    .playback-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      padding: 0.6rem 160px 0.6rem 2rem;
+      background: var(--bg-secondary);
+      border-bottom: 2px solid var(--accent-primary);
+      position: relative;
+      z-index: 1;
+    }
+
+    .btn-play  { background: #16A34A; color: #fff; }
+    .btn-play:hover  { background: #15803D; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(22,163,74,0.3); }
+    .btn-pause { background: #B45309; color: #fff; }
+    .btn-pause:hover { background: #92400E; transform: translateY(-1px); }
+    .btn-stop  { background: transparent; color: var(--cadence-vhard); border: 1px solid rgba(185,28,28,0.35); }
+    .btn-stop:hover  { background: rgba(185,28,28,0.1); border-color: var(--cadence-vhard); }
+
+    .pb-display {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 0.9rem;
+      padding: 0.28rem 0.8rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      color: var(--text-secondary);
+    }
+    .pb-display b { color: var(--accent-primary); font-weight: 400; }
+    .pb-sep { color: var(--text-dim); }
+    .pb-song-info {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.88rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      color: var(--text-secondary);
+      margin-left: auto;
+    }
+
+    /* ── Active / done row styles ── */
+    tbody tr.ex-row.timer-active {
+      background: linear-gradient(to right,
+        rgba(0,105,180,0.13) var(--prog, 0%),
+        var(--bg-secondary) var(--prog, 0%)) !important;
+      box-shadow: inset 4px 0 0 var(--accent-primary);
+    }
+    tbody tr.ex-row.timer-active:nth-child(even) {
+      background: linear-gradient(to right,
+        rgba(0,105,180,0.13) var(--prog, 0%),
+        var(--bg-tertiary) var(--prog, 0%)) !important;
+    }
+    tbody tr.ex-row.timer-active td:first-child {
+      color: var(--accent-primary);
+      font-weight: 700;
+    }
+    tbody tr.ex-row.timer-done { opacity: 0.4; }
+
+    /* ── Focus song progress bar ── */
+    .focus-song-progress {
+      height: 6px;
+      background: var(--bg-card);
+      border-radius: 3px;
+      margin: 1rem 0 1.2rem;
+      overflow: hidden;
+    }
+    .focus-song-progress-fill {
+      height: 100%;
+      background: var(--accent-primary);
+      border-radius: 3px;
+      transition: width 0.2s linear;
+      width: 0%;
+    }
+    .focus-prog-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: -0.6rem;
+      margin-bottom: 1rem;
+    }
+    .focus-song-remaining {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 1.6rem;
+      color: var(--text-secondary);
+    }
+
+    /* ── Up Next panel ── */
+    .up-next {
+      width: 100%;
+      max-width: 720px;
+      margin-top: 0.85rem;
+      border: 1px dashed var(--border-accent);
+      border-radius: 10px;
+      padding: 0.85rem 1.25rem;
+      background: rgba(0,105,180,0.03);
+      display: none;
+      animation: cardIn 0.3s ease;
+    }
+    .up-next.visible { display: block; }
+    .up-next-label {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--accent-primary);
+      margin-bottom: 0.35rem;
+    }
+    .up-next-drill {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1.4rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-primary);
+      line-height: 1;
+    }
+    .up-next-song {
+      font-size: 0.88rem;
+      color: var(--text-secondary);
+      margin-top: 0.2rem;
+    }
+    .up-next-cadence { margin-top: 0.4rem; display: flex; gap: 0.4rem; flex-wrap: wrap; }
+    .up-next-cadence .badge { font-size: 0.72rem; padding: 0.15rem 0.5rem; }
+
+    /* ── Mode toggle button ── */
+    .btn-mode {
+      background: transparent;
+      color: var(--accent-primary);
+      border: 1px solid var(--border-accent);
+    }
+    .btn-mode:hover { background: rgba(0,105,180,0.08); border-color: var(--accent-primary); }
+    .btn-mode.active { background: var(--accent-primary); color: #fff; border-color: var(--accent-primary); }
+
+    /* ── Focus View ── */
+    #focusView { display: none; }
+
+    .focus-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem 3rem;
+      min-height: 60vh;
+    }
+
+    .focus-progress {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1.75rem;
+      width: 100%;
+      max-width: 720px;
+    }
+    .focus-pip {
+      flex: 1;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--bg-card);
+      transition: background 0.25s;
+    }
+    .focus-pip.done  { background: var(--accent-primary); opacity: 0.4; }
+    .focus-pip.active { background: var(--accent-primary); }
+
+    .focus-card {
+      width: 100%;
+      max-width: 720px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: 0 12px 48px rgba(0,0,0,0.12);
+      padding: 2.5rem 2.75rem;
+      animation: cardIn 0.22s ease;
+    }
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .focus-num {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      letter-spacing: 0.1em;
+      margin-bottom: 0.6rem;
+    }
+
+    .focus-drill {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: calc(3.2rem * var(--fs));
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      line-height: 1;
+      color: var(--text-primary);
+      margin-bottom: 0.5rem;
+    }
+
+    .focus-song {
+      font-size: calc(1.15rem * var(--fs));
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 0.2rem;
+    }
+    .focus-song-dur {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 1.6rem;
+      color: var(--text-secondary);
+    }
+
+    .focus-divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 1.2rem 0;
+    }
+
+    .focus-details {
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+      margin-bottom: 1.4rem;
+    }
+    .focus-detail-line {
+      font-size: calc(1rem * var(--fs));
+      color: var(--text-secondary);
+      padding: 0.35rem 0.75rem;
+      border-left: 3px solid var(--border);
+      background: var(--bg-tertiary);
+      border-radius: 0 6px 6px 0;
+    }
+    .focus-detail-line.first {
+      border-left-color: var(--accent-primary);
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+    .focus-detail-line.subdrill-active {
+      border-left: 5px solid var(--accent-primary);
+      background: linear-gradient(to right,
+        rgba(0,105,180,0.28) var(--prog, 0%),
+        rgba(0,105,180,0.07) var(--prog, 0%));
+      color: var(--text-primary);
+      font-weight: 700;
+      box-shadow: inset 0 0 0 1px rgba(0,105,180,0.18);
+    }
+    .focus-detail-line.subdrill-done {
+      opacity: 0.28;
+    }
+    @keyframes subdrillFlash {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.25; }
+    }
+    .focus-detail-line.subdrill-flash {
+      animation: subdrillFlash 0.5s ease-in-out infinite;
+    }
+
+    .focus-cadence { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+    .focus-cadence .badge { font-size: 0.88rem; padding: 0.3rem 0.75rem; }
+    .focus-cadence .bpm-label { font-size: 0.78rem; }
+
+    /* ── Focus nav ── */
+    .focus-nav {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-top: 1.75rem;
+      width: 100%;
+      max-width: 720px;
+      justify-content: space-between;
+    }
+    .focus-counter {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--text-secondary);
+    }
+    .focus-counter em {
+      font-style: normal;
+      color: var(--accent-primary);
+      font-size: 1.2rem;
+    }
+    .btn-nav {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 0.65rem 1.6rem;
+      border-radius: 8px;
+      border: 1px solid var(--border-accent);
+      background: var(--bg-secondary);
+      color: var(--accent-primary);
+      cursor: pointer;
+      transition: all 0.18s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .btn-nav:hover:not(:disabled) { background: var(--accent-primary); color: #fff; border-color: var(--accent-primary); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,105,180,0.22); }
+    .btn-nav:disabled { opacity: 0.3; cursor: not-allowed; }
+    .btn-nav-next { background: var(--accent-primary); color: #fff; border-color: var(--accent-primary); }
+    .btn-nav-next:hover:not(:disabled) { background: #0058A0; }
+
+    /* ── Device indicator ── */
+    .device-badge {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 0.2rem 0.55rem;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      background: var(--bg-card);
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+    }
+    .device-badge:hover { border-color: var(--accent-primary); color: var(--accent-primary); }
+
+    /* ── Tablet adaptations ── */
+    .device-tablet .btn,
+    .device-tablet .btn-nav { padding: 0.7rem 1.2rem; font-size: 1rem; }
+    .device-tablet tbody td { padding: 1rem 1.1rem; }
+    .device-tablet .trw-time { font-size: 2.6rem; }
+    .device-tablet .focus-card { padding: 2rem 2rem; }
+    .device-tablet .focus-drill { font-size: calc(2.8rem * var(--fs)); }
+    .device-tablet .btn-nav { padding: 0.8rem 2rem; font-size: 1.1rem; }
+    .device-tablet .pb-display { font-size: 1.4rem; padding: 0.4rem 1.1rem; gap: 1.2rem; }
+    .device-tablet .pb-display b { font-size: 1.6rem; }
+    .device-tablet .focus-detail-line,
+    .device-phone  .focus-detail-line { padding-bottom: 1.4rem; position: relative; }
+
+
+    /* phase time-remaining counter */
+    .phase-remaining {
+      position: absolute;
+      right: 0.5rem;
+      top: 0.35rem;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 1.1rem;
+      color: var(--accent-primary);
+      line-height: 1.4;
+      pointer-events: none;
+    }
+
+    /* phase-boundary markers within a bar */
+    .device-tablet .phase-marker,
+    .device-phone  .phase-marker {
+      position: absolute;
+      bottom: 0.18rem;
+      transform: translateX(-50%);
+      font-size: 0.9rem;
+      line-height: 1;
+      color: var(--text-dim);
+      pointer-events: none;
+    }
+    .device-tablet .subdrill-active .phase-marker,
+    .device-phone  .subdrill-active .phase-marker { color: var(--accent-primary); }
+
+    /* ── Phone adaptations ── */
+    .device-phone .header { padding: 0 0.75rem; height: 56px; }
+    .device-phone .logo-text { font-size: 1.2rem; }
+    .device-phone .controls { padding: 0.6rem 0.75rem; gap: 0.5rem; }
+    .device-phone .select-wrap { min-width: 100%; order: -1; }
+    .device-phone .font-size-wrap { display: none; } /* use default, no slider clutter */
+    .device-phone .main { padding: 0.75rem 0.75rem 2rem; }
+    .device-phone .sheet-header { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+    .device-phone .time-remaining-widget { align-items: flex-start; }
+    .device-phone .trw-time { font-size: 2.2rem; }
+    /* Hide Song and Details columns on phone — Drill + Cadence most important */
+    .device-phone thead th:nth-child(3),
+    .device-phone thead th:nth-child(4),
+    .device-phone tbody td:nth-child(3),
+    .device-phone tbody td:nth-child(4) { display: none; }
+    .device-phone tbody td { padding: 0.9rem 0.75rem; }
+    .device-phone .drill-name { font-size: calc(1.15rem * var(--fs)); white-space: normal; }
+    /* Larger touch targets */
+    .device-phone .btn { padding: 0.7rem 1rem; font-size: 0.95rem; }
+    .device-phone .btn-nav .btn-label { display: none; }
+    .device-phone .btn-nav { padding: 0.75rem 1.1rem; font-size: 1.1rem; min-width: 2.8rem; justify-content: center; }
+    .device-phone .focus-card { max-width: 100%; }
+    .device-phone .focus-nav { max-width: 100%; }
+    .device-phone .up-next { max-width: 100%; }
+    .device-phone .playback-bar { gap: 0.35rem; padding: 0.5rem 0.75rem; flex-wrap: nowrap; }
+    .device-phone .btn .btn-label { display: none; }
+    .device-phone .btn { padding: 0.65rem 0.75rem; font-size: 1rem; min-width: 2.4rem; justify-content: center; }
+    .device-phone .pb-display { gap: 0.6rem; padding: 0.3rem 0.6rem; font-size: 1rem; }
+    .device-phone .pb-display .pb-sep { display: none; }
+    .device-phone .pb-display span { display: flex; flex-direction: column; align-items: center; font-size: 0.7rem; }
+    .device-phone .pb-display b { font-size: 1.2rem; }
+    /* Focus card */
+    .device-phone .focus-card { padding: 1.25rem 1rem; }
+    .device-phone .focus-drill { font-size: calc(2.4rem * var(--fs)); }
+    .device-phone .focus-song { font-size: calc(1rem * var(--fs)); }
+    .device-phone .up-next { padding: 0.65rem 0.9rem; }
+    .device-phone .up-next-drill { font-size: 1.15rem; }
+    .device-phone  .pb-song-info { font-size: 0.78rem; padding: 0 0.25rem; }
+    .device-tablet .pb-song-info,
+    .device-phone  .pb-song-info { margin-left: 0; }
+    .device-tablet .pb-display,
+    .device-phone  .pb-display   { order: 1; }
+
+    /* ── Existing small-screen fallback ── */
+    @media (max-width: 480px) {
+      .focus-progress { gap: 0.2rem; }
+      .focus-pip { height: 3px; }
+    }
+
+    /* ── Dark Mode ── */
+    body.dark {
+      --bg-primary:    #0D1117;
+      --bg-secondary:  #161B22;
+      --bg-tertiary:   #1C2128;
+      --bg-card:       #21262D;
+      --accent-primary:   #58A6FF;
+      --accent-secondary: #F85149;
+      --text-primary:  #E6EDF3;
+      --text-secondary:#8B949E;
+      --text-dim:      #484F58;
+      --border:        rgba(255,255,255,0.08);
+      --border-accent: rgba(88,166,255,0.25);
+    }
+    body.dark .header {
+      background: rgba(13,17,23,0.93);
+    }
+    body.dark::before {
+      background-image:
+        radial-gradient(ellipse at 20% 0%, rgba(88,166,255,0.07) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 100%, rgba(248,81,73,0.05) 0%, transparent 50%);
+    }
+    body.dark .badge-easy  { background: #0A2E1A; color: #4ADE80; border-color: #166534; }
+    body.dark .badge-mod   { background: #2B1D00; color: #FBBF24; border-color: #92400E; }
+    body.dark .badge-hard  { background: #2B1200; color: #FB923C; border-color: #9A3412; }
+    body.dark .badge-vhard { background: #2B0A0A; color: #F87171; border-color: #991B1B; }
+    body.dark .badge-def   { background: #0F1433; color: #818CF8; border-color: #3730A3; }
+    body.dark .server-badge { background: #0A2E1A; color: #4ADE80; border-color: #166534; }
+    body.dark #analogClock { background: #ffffff; }
+    body.dark .table-wrapper { box-shadow: 0 24px 64px rgba(0,0,0,0.8); }
+    body.dark .focus-card { box-shadow: 0 12px 48px rgba(0,0,0,0.5); }
+    body.dark .flag-btn { border-color: rgba(255,255,255,0.12); }
+    body.dark .flag-btn-focus.flag-green  { background: #0A2E1A; color: #4ADE80; border-color: #166534; }
+    body.dark .flag-btn-focus.flag-yellow { background: #2B1D00; color: #FBBF24; border-color: #92400E; }
+    body.dark .flag-btn-focus.flag-red    { background: #2B0A0A; color: #F87171; border-color: #991B1B; }
+    body.dark tbody tr.ex-row.timer-active {
+      background: linear-gradient(to right,
+        rgba(88,166,255,0.22) var(--prog, 0%),
+        var(--bg-secondary) var(--prog, 0%)) !important;
+    }
+    body.dark tbody tr.ex-row.timer-active:nth-child(even) {
+      background: linear-gradient(to right,
+        rgba(88,166,255,0.22) var(--prog, 0%),
+        var(--bg-tertiary) var(--prog, 0%)) !important;
+    }
+
+    .dark-toggle {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-dim);
+      font-size: 1rem;
+      width: 30px; height: 30px;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      transition: all 0.18s;
+      flex-shrink: 0;
+    }
+    .dark-toggle:hover { border-color: var(--accent-primary); color: var(--accent-primary); }
+    .device-phone .dark-toggle { width: 26px; height: 26px; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+
+  <header class="header">
+    <div class="logo">
+      <div class="logo-hex">⚡</div>
+      <div class="logo-text">Drill <em>Sheet</em></div>
+    </div>
+    <div class="clock-wrap">
+      <button class="btn btn-mode" id="mgmtToggle" onclick="toggleMgmt()" title="Show/hide file management">⚙ Manage</button>
+      <button class="device-badge" id="deviceBadge" onclick="cycleDevice()" title="Detected device — click to override"></button>
+      <button class="dark-toggle" id="darkToggle" onclick="toggleDarkMode()" title="Toggle dark mode">🌙</button>
+    </div>
+  </header>
+
+  <canvas id="analogClock" width="140" height="140"></canvas>
+
+  <div class="controls">
+    <div class="select-wrap">
+      <select id="fileSelect" onchange="loadSelected()">
+        <option value="">— Select a drill sheet —</option>
+      </select>
+    </div>
+    <!-- File management buttons — hidden when a sheet is loaded -->
+    <div id="mgmtBtns">
+      <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+        ↑ Upload CSV
+      </button>
+      <button class="btn btn-danger" id="deleteBtn" onclick="deleteSelected()" style="display:none">
+        ✕ Delete
+      </button>
+      <button class="btn btn-mode" id="cloneBtn" onclick="cloneSelected()" style="display:none" title="Copy this sheet with a new name">
+        ⎘ Clone
+      </button>
+      <button class="btn btn-mode" onclick="exportBundle()" title="Download all sheets as a bundle file">⬇ Export Bundle</button>
+      <button class="btn btn-mode" onclick="document.getElementById('bundleInput').click()" title="Load a previously exported bundle">⬆ Import Bundle</button>
+      <input type="file" id="bundleInput" accept=".json" style="display:none" onchange="importBundle(event)">
+    </div>
+    <button class="btn btn-mode" id="modeBtn" onclick="toggleFocusMode()" style="display:none">
+      ▶ Focus Mode
+    </button>
+    <span class="file-count" id="fileCount" style="display:none">0 sheets</span>
+    <span class="server-badge" id="serverBadge" style="display:none">⚡ Server</span>
+    <div class="font-size-wrap">
+      <span class="fs-label">A</span>
+      <input type="range" id="fsSlider" min="0.7" max="2.0" step="0.05" value="1"
+             oninput="applyFontSize(this.value)">
+      <span class="fs-label fs-label-lg">A</span>
+      <button class="fs-reset" onclick="resetFontSize()" title="Reset to default">↺</button>
+    </div>
+    <input type="file" id="fileInput" accept=".csv" multiple onchange="handleUpload(event)">
+  </div>
+
+  <!-- Playback bar (table mode only) -->
+  <div class="playback-bar" id="playbackBar">
+    <button class="btn btn-play"  id="btnStart" onclick="timerStart()">▶ <span class="btn-label">Start</span></button>
+    <button class="btn btn-pause" id="btnPause" onclick="timerPause()" style="display:none">⏸ <span class="btn-label">Pause</span></button>
+    <button class="btn btn-play"  id="btnResume" onclick="timerResume()" style="display:none">▶ <span class="btn-label">Resume</span></button>
+    <button class="btn btn-stop"  id="btnStop"  onclick="if(confirm('Stop the timer and reset?'))timerStop()" style="display:none">■ <span class="btn-label">Stop</span></button>
+    <button class="btn btn-mode"  id="btnSkipPrev" onclick="timerSkip(-1)" style="display:none">⏮ <span class="btn-label">Prev</span></button>
+    <button class="btn btn-mode"  id="btnSkipNext" onclick="timerSkip(1)"  style="display:none">⏭ <span class="btn-label">Next</span></button>
+    <button class="btn btn-mode"  id="autoScrollBtn" onclick="toggleAutoScroll()" style="display:none" title="Auto-scroll to keep Up Next visible">⇩ <span class="btn-label">Scroll</span></button>
+    <div class="pb-display">
+      <span>Elapsed&nbsp;<b id="pbElapsed">0:00</b></span>
+      <span class="pb-sep">|</span>
+      <span>Remaining&nbsp;<b id="pbRemaining">—</b></span>
+      <span class="pb-sep">|</span>
+      <span>Total&nbsp;<b id="pbTotal">—</b></span>
+    </div>
+    <span class="pb-song-info" id="pbSongInfo"></span>
+  </div>
+
+  <main class="main" id="main">
+
+    <div id="emptyState">
+      <div class="empty-state">
+        <div class="empty-icon">🚴</div>
+        <div class="empty-title">No Drill Sheet Loaded</div>
+        <div class="empty-sub">Upload a CSV file to get started</div>
+      </div>
+      <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+        <div class="drop-icon">📄</div>
+        <div class="drop-title">Drop CSV files here or click to browse</div>
+        <div class="drop-sub">Supports multiple files · Saved locally in your browser</div>
+      </div>
+    </div>
+
+    <div id="sheetView" style="display:none">
+      <div class="sheet-header">
+        <div class="sheet-header-left">
+          <div class="sheet-title" id="sheetTitle"></div>
+          <div class="sheet-meta" id="sheetMeta"></div>
+        </div>
+        <div class="time-remaining-widget">
+          <div class="trw-label">Time Remaining</div>
+          <div class="trw-time" id="trwTime">—</div>
+          <div class="trw-status" id="trwStatus"></div>
+        </div>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Drill</th>
+              <th>Song</th>
+              <th>Details</th>
+              <th>Cadence</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Focus Mode -->
+    <div id="focusView">
+      <div class="focus-wrap">
+        <div class="focus-progress" id="focusProgress"></div>
+        <div class="focus-card" id="focusCard"></div>
+        <div class="up-next" id="upNext">
+          <div class="up-next-label" id="upNextLabel">Up Next</div>
+          <div class="up-next-drill" id="upNextDrill"></div>
+          <div class="up-next-song" id="upNextSong"></div>
+          <div class="up-next-cadence" id="upNextCadence"></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+<script>
+// ── Clock ──────────────────────────────────────────────────────────────────
+// ── Analog Clock ───────────────────────────────────────────────────────────
+(function drawAnalogClock() {
+  const canvas = document.getElementById('analogClock');
+  const ctx    = canvas.getContext('2d');
+  let cx, cy, R;
+
+  function hand(angle, length, width, color, lineCap) {
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(angle);
+    ctx.beginPath();
+    ctx.moveTo(0, length * 0.18);   // tail
+    ctx.lineTo(0, -length);
+    ctx.lineWidth   = width;
+    ctx.strokeStyle = color;
+    ctx.lineCap     = lineCap || 'round';
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function draw() {
+    R  = canvas.width / 2;
+    cx = R; cy = R;
+    const now  = new Date();
+    const ms   = now.getMilliseconds();
+    const sec  = now.getSeconds() + ms / 1000;
+    const min  = now.getMinutes() + sec / 60;
+    const hour = (now.getHours() % 12) + min / 60;
+    const isDark = document.body.classList.contains('dark');
+
+    const bgColor     = isDark ? '#1e2330' : '#F4F6FA';
+    const faceColor   = isDark ? '#252b3b' : '#FFFFFF';
+    const tickColor   = isDark ? '#4B5563' : '#CBD5E1';
+    const tickStrong  = isDark ? '#6B7280' : '#94A3B8';
+    const handColor   = isDark ? '#E2E8F0' : '#111827';
+    const accentColor = '#0069B4';
+    const secondColor = '#D6274A';
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Face
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, 0, Math.PI * 2);
+    ctx.fillStyle = faceColor;
+    ctx.fill();
+
+    // Hour ticks
+    for (let i = 0; i < 60; i++) {
+      const a = (i / 60) * Math.PI * 2 - Math.PI / 2;
+      const isHour = i % 5 === 0;
+      const outer = R - 2;
+      const inner = isHour ? R - 10 : R - 6;
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(a) * inner, cy + Math.sin(a) * inner);
+      ctx.lineTo(cx + Math.cos(a) * outer, cy + Math.sin(a) * outer);
+      ctx.lineWidth   = isHour ? 2 : 1;
+      ctx.strokeStyle = isHour ? tickStrong : tickColor;
+      ctx.stroke();
+    }
+
+    // Hands
+    hand((hour / 12) * Math.PI * 2,  R * 0.50, 3.5, handColor);
+    hand((min  / 60) * Math.PI * 2,  R * 0.70, 2.0, handColor);
+    hand((sec  / 60) * Math.PI * 2,  R * 0.78, 1.2, secondColor);
+
+    // Second hand tail accent
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate((sec / 60) * Math.PI * 2);
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(0, R * 0.18);
+    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = secondColor;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+    ctx.restore();
+
+    // Center dot
+    ctx.beginPath();
+    ctx.arc(cx, cy, 3.5, 0, Math.PI * 2);
+    ctx.fillStyle = accentColor;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(cx, cy, 1.5, 0, Math.PI * 2);
+    ctx.fillStyle = '#fff';
+    ctx.fill();
+
+    requestAnimationFrame(draw);
+  }
+
+  draw();
+})();
+
+// ── Analog Clock Drag ──────────────────────────────────────────────────────
+(function() {
+  const el = document.getElementById('analogClock');
+  let dragging = false, ox = 0, oy = 0;
+
+  function startDrag(cx, cy) {
+    dragging = true;
+    const rect = el.getBoundingClientRect();
+    ox = cx - rect.left;
+    oy = cy - rect.top;
+    el.classList.add('dragging');
+    // Switch from right-anchored to left-anchored for free movement
+    el.style.right  = 'auto';
+    el.style.left   = rect.left + 'px';
+    el.style.top    = rect.top  + 'px';
+  }
+
+  function moveDrag(cx, cy) {
+    if (!dragging) return;
+    const size = el.width;
+    const x = Math.max(0, Math.min(window.innerWidth  - size, cx - ox));
+    const y = Math.max(0, Math.min(window.innerHeight - size, cy - oy));
+    el.style.left = x + 'px';
+    el.style.top  = y + 'px';
+  }
+
+  function saveClockState() {
+    localStorage.setItem('drillsheet_clock', JSON.stringify({
+      left: el.style.left, top: el.style.top, size: el.width
+    }));
+  }
+
+  function endDrag() {
+    dragging = false;
+    el.classList.remove('dragging');
+    saveClockState();
+  }
+
+  el.addEventListener('mousedown',  e => { e.preventDefault(); startDrag(e.clientX, e.clientY); });
+  document.addEventListener('mousemove', e => moveDrag(e.clientX, e.clientY));
+  document.addEventListener('mouseup',   endDrag);
+
+  // ── Touch: single finger = drag, two fingers = pinch resize ──
+  let pinching = false, pinchDist0 = 0, pinchSize0 = 0;
+
+  function touchDist(e) {
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    return Math.hypot(dx, dy);
+  }
+
+  el.addEventListener('touchstart', e => {
+    e.preventDefault();
+    if (e.touches.length === 2) {
+      pinching    = true;
+      dragging    = false;
+      pinchDist0  = touchDist(e);
+      pinchSize0  = el.width;
+    } else if (e.touches.length === 1) {
+      pinching = false;
+      startDrag(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  }, { passive: false });
+
+  document.addEventListener('touchmove', e => {
+    if (pinching && e.touches.length === 2) {
+      e.preventDefault();
+      const scale   = touchDist(e) / pinchDist0;
+      const newSize = Math.round(Math.max(60, Math.min(260, pinchSize0 * scale)));
+      // Keep clock centred on pinch midpoint
+      const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+      const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+      el.style.right = 'auto';
+      el.style.left  = Math.max(0, Math.min(window.innerWidth  - newSize, midX - newSize / 2)) + 'px';
+      el.style.top   = Math.max(0, Math.min(window.innerHeight - newSize, midY - newSize / 2)) + 'px';
+      el.width  = newSize;
+      el.height = newSize;
+    } else if (dragging && e.touches.length === 1) {
+      e.preventDefault();
+      moveDrag(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  }, { passive: false });
+
+  document.addEventListener('touchend', e => {
+    if (e.touches.length < 2 && pinching) { pinching = false; saveClockState(); }
+    if (e.touches.length === 0) endDrag();
+  });
+
+  // Restore saved position and size
+  try {
+    const saved = JSON.parse(localStorage.getItem('drillsheet_clock'));
+    if (saved) {
+      el.style.right = 'auto';
+      el.style.left  = saved.left;
+      el.style.top   = saved.top;
+      el.width       = saved.size;
+      el.height      = saved.size;
+    }
+  } catch(e) {}
+})();
+
+// ── Storage ────────────────────────────────────────────────────────────────
+const STORE = 'drillsheet_v1';
+function getAll() { try { return JSON.parse(localStorage.getItem(STORE)||'{}'); } catch { return {}; } }
+function saveAll(d) { localStorage.setItem(STORE, JSON.stringify(d)); }
+
+// ── Upload ─────────────────────────────────────────────────────────────────
+function handleUpload(e) {
+  const files = Array.from(e.target.files);
+  const data = getAll();
+  let done = 0, last = null;
+  files.forEach(f => {
+    const r = new FileReader();
+    r.onload = ev => {
+      data[f.name] = ev.target.result;
+      last = f.name;
+      if (++done === files.length) { saveAll(data); refreshDropdown(last); }
+    };
+    r.readAsText(f);
+  });
+  e.target.value = '';
+}
+
+// ── Dropdown ───────────────────────────────────────────────────────────────
+function refreshDropdown(selectName) {
+  const sel = document.getElementById('fileSelect');
+  const data = getAll();
+  const names = Object.keys(data).sort();
+  sel.innerHTML = '<option value="">— Select a drill sheet —</option>';
+  names.forEach(n => {
+    const o = document.createElement('option');
+    o.value = n; o.textContent = n.replace(/\.csv$/i,'');
+    sel.appendChild(o);
+  });
+  document.getElementById('fileCount').textContent = `${names.length} sheet${names.length!==1?'s':''}`;
+  if (selectName && data[selectName]) { sel.value = selectName; loadSelected(); }
+}
+
+function loadSelected() {
+  const sel = document.getElementById('fileSelect');
+  const name = sel.value;
+  const delBtn = document.getElementById('deleteBtn');
+  const cloneBtn = document.getElementById('cloneBtn');
+  const modeBtn = document.getElementById('modeBtn');
+  if (!name) {
+    document.getElementById('emptyState').style.display = '';
+    document.getElementById('sheetView').style.display = 'none';
+    document.getElementById('focusView').style.display = 'none';
+    document.getElementById('btnStart').disabled = true;
+    delBtn.style.display = 'none';
+    cloneBtn.style.display = 'none';
+    modeBtn.style.display = 'none';
+    setMgmtVisible(true);
+    return;
+  }
+  delBtn.style.display = '';
+  cloneBtn.style.display = '';
+  const isLaptop = (localStorage.getItem(DEVICE_KEY) || detectDevice()) === 'laptop';
+  if (!isLaptop) setMgmtVisible(false);
+  const csv = getAll()[name];
+  if (!csv) return;
+  // Stop any running timer and reset focus mode on new sheet load
+  timerStop();
+  focusActive = false;
+  focusIndex = 0;
+  modeBtn.textContent = '▶ Focus Mode';
+  modeBtn.classList.remove('active');
+  document.getElementById('focusView').style.display = 'none';
+  const groups = groupRows(parseCSV(csv));
+  focusGroups = groups;
+  renderSheet(groups, name);
+  const dev = localStorage.getItem(DEVICE_KEY) || detectDevice();
+  if ((dev === 'phone' || dev === 'tablet') && !focusActive) toggleFocusMode();
+}
+
+function deleteSelected() {
+  const name = document.getElementById('fileSelect').value;
+  if (!name || !confirm(`Delete "${name}"?`)) return;
+  const data = getAll();
+  delete data[name];
+  saveAll(data);
+  document.getElementById('fileSelect').value = '';
+  refreshDropdown(null);
+  document.getElementById('emptyState').style.display = '';
+  document.getElementById('sheetView').style.display = 'none';
+  document.getElementById('focusView').style.display = 'none';
+  document.getElementById('deleteBtn').style.display = 'none';
+  document.getElementById('cloneBtn').style.display = 'none';
+  document.getElementById('modeBtn').style.display = 'none';
+  focusActive = false; focusGroups = [];
+  document.getElementById('btnStart').disabled = true;
+  setMgmtVisible(true);
+}
+
+function cloneSelected() {
+  const name = document.getElementById('fileSelect').value;
+  if (!name) return;
+  const data = getAll();
+  const csv = data[name];
+  if (!csv) return;
+  const baseName = name.replace(/\.csv$/i, '');
+  const proposed = baseName + ' copy';
+  const newName = prompt('Clone "' + baseName + '" as:', proposed);
+  if (!newName || !newName.trim()) return;
+  const key = newName.trim().endsWith('.csv') ? newName.trim() : newName.trim() + '.csv';
+  if (data[key]) { alert(`A sheet named "${key}" already exists.`); return; }
+  data[key] = csv;
+  saveAll(data);
+  refreshDropdown(key);
+}
+
+// ── CSV Parser ─────────────────────────────────────────────────────────────
+function parseCSV(text) {
+  const lines = text.split(/\r?\n/);
+  let header = null;
+  const rows = [];
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) continue;
+    const cols = splitLine(line);
+    if (!header) { header = cols.map(h => h.trim()); continue; }
+    const row = {};
+    header.forEach((h,i) => { row[h] = (cols[i]||'').trim(); });
+    rows.push(row);
+  }
+  return rows;
+}
+
+function splitLine(line) {
+  const out = []; let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') { if (inQ && line[i+1]==='"') { cur+='"'; i++; } else inQ=!inQ; }
+    else if (c === ',' && !inQ) { out.push(cur); cur=''; }
+    else cur += c;
+  }
+  out.push(cur);
+  return out;
+}
+
+// ── Row Grouping ───────────────────────────────────────────────────────────
+function groupRows(rows) {
+  const groups = [];
+  let cur = null;
+  for (const r of rows) {
+    const drill = r['Drill']||'', song = r['Song']||'',
+          details = r['Details']||'', cadence = r['Cadence']||'';
+    if (!drill && !song) {
+      if (cur) {
+        if (details) cur.details.push(details);
+        if (cadence && !cur.cadences.includes(cadence)) cur.cadences.push(cadence);
+      }
+    } else {
+      cur = { drill, song, details: details ? [details] : [], cadences: cadence ? [cadence] : [], flag: r['Flag'] || '' };
+      groups.push(cur);
+    }
+  }
+  return groups.filter(g => g.drill || g.song || g.details.length);
+}
+
+// ── Cadence Badge ──────────────────────────────────────────────────────────
+function cadenceInfo(c) {
+  const lo = c.toLowerCase();
+  if (lo.includes('v hard') || lo.includes('vhard')) return { cls:'vhard', label:'V Hard' };
+  if (lo.includes('hard')) return { cls:'hard', label:'Hard' };
+  if (lo.includes('mod'))  return { cls:'mod',  label:'Moderate' };
+  if (lo.includes('easy')) return { cls:'easy', label:'Easy' };
+  return { cls:'def', label: c };
+}
+
+function badgeHTML(c) {
+  if (!c) return '';
+  const { cls, label } = cadenceInfo(c);
+  const bpm = (c.match(/(\d+\s*[-–]\s*\d+)/) || [])[1];
+  return `<div><span class="badge badge-${cls}">${label}</span>${bpm ? `<div class="bpm-label">${bpm} RPM</div>` : ''}</div>`;
+}
+
+// ── Render ─────────────────────────────────────────────────────────────────
+let currentFile = null;
+
+function buildRow(g, i) {
+  const song = g.song.match(/^(.*?)\s*\((\d+:\d+)\)\s*$/) || [, g.song, ''];
+  const [, songName, dur] = song;
+
+  const tr = document.createElement('tr');
+  tr.className = 'ex-row' + (g.flag ? ' flag-' + g.flag : '');
+  tr.dataset.idx = i;
+  tr.title = 'Click to seek · Double-click cell to edit';
+  tr.addEventListener('click', () => timerSeekTo(i));
+
+  tr.innerHTML = `
+    <td>
+      <span class="row-num">${i+1}</span>
+      <button class="flag-btn${g.flag ? ' flag-'+g.flag : ''}" title="${g.flag ? 'Flag: '+g.flag+' — click to change' : 'No flag — click to flag'}"></button>
+      <div class="row-acts">
+        <button class="btn-ra" data-act="move-up"    title="Move drill up">↑</button>
+        <button class="btn-ra" data-act="move-down"  title="Move drill down">↓</button>
+        <button class="btn-ra" data-act="ins-before" title="Insert above">+↑</button>
+        <button class="btn-ra" data-act="ins-after"  title="Insert below">+↓</button>
+        <button class="btn-ra del" data-act="del"    title="Delete this drill">✕</button>
+      </div>
+    </td>
+    <td class="editable" data-field="drill"><div class="drill-name">${escH(g.drill)}</div></td>
+    <td class="editable" data-field="song">
+      <div class="song-name">${escH(songName||'')}</div>
+      ${dur ? `<div class="song-dur">⏱ ${dur}</div>` : ''}
+    </td>
+    <td class="editable" data-field="details">
+      <div class="details-list">
+        ${g.details.map((d,j)=>`<div class="detail-line${j===0?' first':''}">${escH(d)}</div>`).join('')}
+      </div>
+    </td>
+    <td class="editable" data-field="cadence">
+      <div class="cadence-block">
+        ${g.cadences.map(badgeHTML).join('')||'<span style="color:var(--text-dim)">—</span>'}
+      </div>
+    </td>`;
+
+  tr.querySelectorAll('td.editable').forEach(td => {
+    td.addEventListener('dblclick', e => { e.stopPropagation(); enterCellEdit(td, i, td.dataset.field); });
+  });
+
+  tr.querySelectorAll('.btn-ra').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const act = btn.dataset.act;
+      if      (act === 'move-up')   moveDrill(i, -1);
+      else if (act === 'move-down') moveDrill(i, +1);
+      else if (act === 'ins-before') insertDrillAt(i);
+      else if (act === 'ins-after')  insertDrillAt(i + 1);
+      else if (act === 'del')        deleteDrillAt(i);
+    });
+  });
+
+  tr.querySelector('.flag-btn').addEventListener('click', e => {
+    e.stopPropagation();
+    cycleFlag(i);
+  });
+
+  return tr;
+}
+
+function renderSheet(groups, filename) {
+  currentFile = filename;
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('sheetView').style.display = '';
+  document.getElementById('btnStart').disabled = false;
+  buildTimings(groups);
+  document.getElementById('pbRemaining').textContent = fmtSec(totalDurSec);
+  document.getElementById('sheetTitle').textContent = filename.replace(/\.csv$/i,'');
+  document.getElementById('sheetMeta').textContent =
+    `${groups.length} exercise${groups.length!==1?'s':''} · ${new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})}`;
+
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = '';
+  groups.forEach((g, i) => tbody.appendChild(buildRow(g, i)));
+}
+
+function escH(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Inline Edit ─────────────────────────────────────────────────────────────
+function enterCellEdit(td, groupIdx, field) {
+  if (td.classList.contains('editing')) return;
+  td.classList.add('editing');
+
+  const g = focusGroups[groupIdx];
+  const isDetails  = field === 'details';
+  const isCadence  = field === 'cadence';
+  const isDrill    = field === 'drill';
+
+  let currentVal;
+  if (isDetails)      currentVal = g.details.join('\n');
+  else if (isCadence) currentVal = g.cadences.join(', ');
+  else                currentVal = g[field]; // drill or song
+
+  const originalHTML = td.innerHTML;
+  const input = document.createElement(isDetails ? 'textarea' : 'input');
+  input.className = 'cell-input' + (isDrill ? ' drill-input' : '');
+  input.value = currentVal;
+  if (isDetails) {
+    input.rows = Math.max(2, g.details.length + 1);
+    input.title = 'One detail per line';
+  }
+
+  const hint = document.createElement('div');
+  hint.className = 'edit-hint';
+  hint.textContent = isDetails ? 'Enter = new line · Esc = cancel · Click away = save'
+                               : 'Enter = save · Esc = cancel';
+
+  td.innerHTML = '';
+  td.appendChild(input);
+  td.appendChild(hint);
+  input.focus();
+  input.select();
+
+  let saved = false;
+
+  function save() {
+    if (saved) return;
+    saved = true;
+    const newVal = input.value;
+    td.classList.remove('editing');
+    saveCellEdit(groupIdx, field, newVal);
+  }
+
+  function cancel() {
+    if (saved) return;
+    saved = true;
+    td.classList.remove('editing');
+    td.innerHTML = originalHTML;
+    // re-attach dblclick after restoring HTML
+    td.addEventListener('dblclick', e => { e.stopPropagation(); enterCellEdit(td, groupIdx, field); }, { once: true });
+  }
+
+  input.addEventListener('blur', save);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Escape')                        { e.preventDefault(); input.removeEventListener('blur', save); cancel(); }
+    if (e.key === 'Enter' && !isDetails)           { e.preventDefault(); input.blur(); }
+  });
+}
+
+function saveCellEdit(groupIdx, field, newVal) {
+  const g = focusGroups[groupIdx];
+  if (field === 'drill')        g.drill    = newVal.trim();
+  else if (field === 'song')    g.song     = newVal.trim();
+  else if (field === 'details') g.details  = newVal.split('\n').map(s => s.trim()).filter(Boolean);
+  else if (field === 'cadence') g.cadences = newVal.split(',').map(s => s.trim()).filter(Boolean);
+
+  if (field === 'song') buildTimings(focusGroups);
+
+  // Replace only the edited row in the DOM
+  const rows = document.querySelectorAll('#tableBody tr.ex-row');
+  if (rows[groupIdx]) rows[groupIdx].replaceWith(buildRow(g, groupIdx));
+
+  persistEdits();
+}
+
+function persistEdits() {
+  if (!currentFile) return;
+  const data = getAll();
+  data[currentFile] = groupsToCSV(focusGroups);
+  saveAll(data);
+}
+
+function rebuildTableRows() {
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = '';
+  focusGroups.forEach((g, i) => tbody.appendChild(buildRow(g, i)));
+  buildTimings(focusGroups);
+  document.getElementById('sheetMeta').textContent =
+    `${focusGroups.length} exercise${focusGroups.length !== 1 ? 's' : ''} · ${new Date().toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric'})}`;
+  persistEdits();
+}
+
+function moveDrill(idx, dir) {
+  const target = idx + dir;
+  if (target < 0 || target >= focusGroups.length) return;
+  const [removed] = focusGroups.splice(idx, 1);
+  focusGroups.splice(target, 0, removed);
+  rebuildTableRows();
+}
+
+function insertDrillAt(idx) {
+  focusGroups.splice(idx, 0, { drill: 'New Drill', song: '', details: [], cadences: [], flag: '' });
+  rebuildTableRows();
+  // Enter edit mode on the new row's drill cell immediately
+  const rows = document.querySelectorAll('#tableBody tr.ex-row');
+  if (rows[idx]) {
+    const td = rows[idx].querySelector('td.editable[data-field="drill"]');
+    if (td) enterCellEdit(td, idx, 'drill');
+  }
+}
+
+function deleteDrillAt(idx) {
+  const name = focusGroups[idx].drill || `drill ${idx + 1}`;
+  if (!confirm(`Delete "${name}"?`)) return;
+  focusGroups.splice(idx, 1);
+  rebuildTableRows();
+}
+
+function getFlagLabel(flag) {
+  if (flag === 'green')  return '● Green';
+  if (flag === 'yellow') return '● Yellow';
+  if (flag === 'red')    return '● Red';
+  return '⚑ Flag';
+}
+
+function cycleFlag(idx) {
+  const g = focusGroups[idx];
+  const cycle = ['', 'green', 'yellow', 'red'];
+  g.flag = cycle[(cycle.indexOf(g.flag || '') + 1) % cycle.length];
+
+  // Update table row in-place
+  const rows = document.querySelectorAll('#tableBody tr.ex-row');
+  const tr = rows[idx];
+  if (tr) {
+    tr.classList.remove('flag-green', 'flag-yellow', 'flag-red');
+    if (g.flag) tr.classList.add('flag-' + g.flag);
+    const dot = tr.querySelector('.flag-btn');
+    if (dot) {
+      dot.className = 'flag-btn' + (g.flag ? ' flag-' + g.flag : '');
+      dot.title = g.flag ? 'Flag: ' + g.flag + ' — click to change' : 'No flag — click to flag';
+    }
+  }
+
+  // Update focus card pill if currently shown
+  if (focusActive && focusIndex === idx) {
+    const btn = document.getElementById('focusFlagBtn');
+    if (btn) {
+      btn.className = 'flag-btn-focus' + (g.flag ? ' flag-' + g.flag : '');
+      btn.textContent = getFlagLabel(g.flag);
+    }
+  }
+
+  persistEdits();
+}
+
+function csvEsc(v) {
+  v = String(v);
+  return (v.includes(',') || v.includes('"') || v.includes('\n')) ? '"' + v.replace(/"/g,'""') + '"' : v;
+}
+
+function groupsToCSV(groups) {
+  const rows = ['Drill,Song,Details,Cadence,Flag'];
+  groups.forEach(g => {
+    rows.push([g.drill, g.song, g.details[0]||'', g.cadences[0]||'', g.flag||''].map(csvEsc).join(','));
+    const maxExtra = Math.max(g.details.length - 1, g.cadences.length - 1);
+    for (let i = 0; i < maxExtra; i++) {
+      rows.push(['', '', g.details[i+1]||'', g.cadences[i+1]||'', ''].map(csvEsc).join(','));
+    }
+  });
+  return rows.join('\n');
+}
+
+// ── Drag & Drop ────────────────────────────────────────────────────────────
+function setupDrop(el) {
+  el.addEventListener('dragover', e => { e.preventDefault(); el.classList.add('drag-over'); });
+  el.addEventListener('dragleave', () => el.classList.remove('drag-over'));
+  el.addEventListener('drop', e => {
+    e.preventDefault(); el.classList.remove('drag-over');
+    const files = Array.from(e.dataTransfer.files).filter(f => /\.csv$/i.test(f.name));
+    if (files.length) handleUpload({ target: { files, value: '' } });
+  });
+}
+
+const dz = document.getElementById('dropZone');
+if (dz) setupDrop(dz);
+
+document.body.addEventListener('dragover', e => e.preventDefault());
+document.body.addEventListener('drop', e => {
+  e.preventDefault();
+  const files = Array.from(e.dataTransfer.files).filter(f => /\.csv$/i.test(f.name));
+  if (files.length) handleUpload({ target: { files, value: '' } });
+});
+
+// ── Timer ──────────────────────────────────────────────────────────────────
+let timerState    = 'stopped'; // 'stopped' | 'running' | 'paused'
+let timerElapsed  = 0;         // ms accumulated before current run
+let timerTickAt   = null;      // Date.now() when current run started
+let timerInterval = null;
+let rowDurations  = [];        // seconds per group row
+let rowCumulative = [];        // cumulative start-second for each row
+let totalDurSec   = 0;
+
+function parseDurSec(song) {
+  const m = song.match(/\((\d+):(\d+)\)/);
+  return m ? parseInt(m[1]) * 60 + parseInt(m[2]) : 0;
+}
+
+function drillNameDurSec(drillName) {
+  const m = drillName && drillName.match(/(\d+)\s*(?:minute|min)/i);
+  return (m && /\bclimb/i.test(drillName)) ? parseInt(m[1]) * 60 : 0;
+}
+
+function fmtSec(s) {
+  s = Math.max(0, Math.floor(s));
+  return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+}
+
+function buildTimings(groups) {
+  rowDurations  = groups.map(g => {
+    const songSec = parseDurSec(g.song);
+    if (songSec > 0) return songSec;
+    const nameSec = drillNameDurSec(g.drill);
+    const subSecs = effectiveDetails(g).map(d => parseSubdrillSec(d, nameSec, g.drill)).filter(d => d !== null);
+    const total = subSecs.reduce((a, b) => a + b, 0);
+    return total || (nameSec ? nameSec + 15 : 0);
+  });
+  rowCumulative = [];
+  let cum = 0;
+  rowDurations.forEach(d => { rowCumulative.push(cum); cum += d; });
+  totalDurSec = cum;
+  document.getElementById('pbTotal').textContent = fmtSec(totalDurSec);
+  updateTRW(totalDurSec, 'stopped');
+}
+
+function scrollToPlaybar() {
+  const pb     = document.getElementById('playbackBar');
+  const header = document.querySelector('.header');
+  const top    = pb.getBoundingClientRect().top + window.scrollY - header.offsetHeight;
+  window.scrollTo({ top, behavior: 'smooth' });
+}
+
+function timerStart() {
+  if (timerState === 'running') return;
+  timerState  = 'running';
+  timerElapsed = 0;
+  timerTickAt  = Date.now();
+  scrollToPlaybar();
+  document.getElementById('btnStart').style.display    = 'none';
+  document.getElementById('btnPause').style.display    = '';
+  document.getElementById('btnResume').style.display   = 'none';
+  document.getElementById('btnStop').style.display     = '';
+  document.getElementById('btnSkipPrev').style.display = '';
+  document.getElementById('btnSkipNext').style.display = '';
+  timerInterval = setInterval(timerTick, 100);
+  acquireWakeLock();
+}
+
+function timerPause() {
+  if (timerState !== 'running') return;
+  timerElapsed += Date.now() - timerTickAt;
+  timerState = 'paused';
+  clearInterval(timerInterval);
+  document.getElementById('btnPause').style.display  = 'none';
+  document.getElementById('btnResume').style.display = '';
+  updateTRW(totalDurSec - timerElapsed / 1000, 'paused');
+}
+
+function timerResume() {
+  if (timerState !== 'paused') return;
+  timerState  = 'running';
+  timerTickAt = Date.now();
+  document.getElementById('btnResume').style.display = 'none';
+  document.getElementById('btnPause').style.display  = '';
+  timerInterval = setInterval(timerTick, 100);
+  acquireWakeLock();
+}
+
+function timerStop() {
+  clearInterval(timerInterval);
+  timerState   = 'stopped';
+  timerElapsed = 0;
+  document.getElementById('btnStart').style.display    = '';
+  document.getElementById('btnPause').style.display    = 'none';
+  document.getElementById('btnResume').style.display   = 'none';
+  document.getElementById('btnStop').style.display     = 'none';
+  document.getElementById('btnSkipPrev').style.display = 'none';
+  document.getElementById('btnSkipNext').style.display = 'none';
+  document.getElementById('pbElapsed').textContent   = '0:00';
+  document.getElementById('pbRemaining').textContent = fmtSec(totalDurSec);
+  document.getElementById('pbSongInfo').textContent  = '';
+  updateTRW(totalDurSec, 'stopped');
+  clearRowHighlights();
+  releaseWakeLock();
+}
+
+function timerSkip(dir) {
+  if (timerState === 'stopped') return;
+  const elapsed = (timerState === 'running'
+    ? timerElapsed + Date.now() - timerTickAt
+    : timerElapsed) / 1000;
+
+  const cur = getActiveIdx(elapsed);
+
+  // skip prev: if >3s into current song go to its start, otherwise go to previous song
+  let target = -1;
+  if (dir === -1) {
+    const intoRow = elapsed - rowCumulative[cur];
+    if (intoRow > 3 || cur === 0) {
+      target = cur;
+    } else {
+      for (let i = cur - 1; i >= 0; i--) {
+        if (rowDurations[i] > 0) { target = i; break; }
+      }
+      if (target === -1) target = cur;
+    }
+  } else {
+    for (let i = cur + 1; i < rowCumulative.length; i++) {
+      if (rowDurations[i] > 0) { target = i; break; }
+    }
+    if (target === -1) return; // already at last song
+  }
+
+  const newElapsed = rowCumulative[target] * 1000;
+  timerElapsed = newElapsed;
+  if (timerState === 'running') timerTickAt = Date.now();
+  timerTick();
+}
+
+function updateTRW(remainingSec, state) {
+  const el     = document.getElementById('trwTime');
+  const status = document.getElementById('trwStatus');
+  if (!el) return;
+  el.textContent = fmtSec(remainingSec);
+  el.classList.remove('warning', 'done');
+  if (state === 'stopped') {
+    status.textContent = 'Total Duration';
+  } else if (state === 'paused') {
+    status.textContent = 'Paused';
+    el.classList.add('warning');
+  } else if (remainingSec <= 0) {
+    el.classList.add('done');
+    status.textContent = 'Complete';
+  } else if (remainingSec <= 60) {
+    el.classList.add('warning');
+    status.textContent = 'Running';
+  } else {
+    status.textContent = 'Running';
+  }
+}
+
+function timerSeekTo(idx) {
+  if (rowDurations.length === 0) return;
+  const newElapsed = rowCumulative[idx] * 1000;
+
+  if (timerState === 'stopped') {
+    // Transition to paused-at-position so user can Resume or Stop
+    timerElapsed = newElapsed;
+    timerState   = 'paused';
+    document.getElementById('btnStart').style.display    = 'none';
+    document.getElementById('btnPause').style.display    = 'none';
+    document.getElementById('btnResume').style.display   = '';
+    document.getElementById('btnStop').style.display     = '';
+    document.getElementById('btnSkipPrev').style.display = '';
+    document.getElementById('btnSkipNext').style.display = '';
+    // Fake timerTickAt so elapsed math works (paused state doesn't use it, but be safe)
+    timerTickAt = Date.now();
+  } else {
+    timerElapsed = newElapsed;
+    if (timerState === 'running') timerTickAt = Date.now();
+  }
+  timerTick();
+}
+
+function getActiveIdx(elapsedSec) {
+  // Forward scan: first row whose time window hasn't ended yet
+  for (let i = 0; i < rowDurations.length; i++) {
+    if (rowDurations[i] > 0 && elapsedSec < rowCumulative[i] + rowDurations[i]) return i;
+  }
+  // Past all rows — return last row with a duration
+  for (let i = rowDurations.length - 1; i >= 0; i--) {
+    if (rowDurations[i] > 0) return i;
+  }
+  return 0;
+}
+
+function timerTick() {
+  const elapsed = (timerElapsed + Date.now() - timerTickAt) / 1000;
+
+  // auto-stop at end
+  if (elapsed >= totalDurSec && totalDurSec > 0) {
+    timerStop(); clearRowHighlights(); return;
+  }
+
+  const activeIdx = getActiveIdx(elapsed);
+  const rowElapsed = elapsed - rowCumulative[activeIdx];
+  const rowDur     = rowDurations[activeIdx];
+  const pct        = rowDur > 0 ? Math.min(100, (rowElapsed / rowDur) * 100) : 0;
+  const remaining  = rowDur - rowElapsed;
+
+  // update playback bar display
+  const totalRemaining = totalDurSec - elapsed;
+  document.getElementById('pbElapsed').textContent   = fmtSec(elapsed);
+  document.getElementById('pbRemaining').textContent = fmtSec(totalRemaining);
+  updateTRW(totalRemaining, timerState);
+  const g = focusGroups[activeIdx];
+  if (g) document.getElementById('pbSongInfo').textContent = focusActive
+    ? `Drill ${focusIndex + 1} of ${focusGroups.length}`
+    : `Now: ${g.drill}${g.song ? ' — ' + g.song : ''} (−${fmtSec(remaining)})`;
+
+  if (focusActive) {
+    // Drive focus mode — advance card when song changes
+    if (focusIndex !== activeIdx) { focusIndex = activeIdx; renderFocusCard(); }
+    renderFocusProgress(pct, remaining, rowDur);
+  } else {
+    // Highlight table rows
+    const rows = document.querySelectorAll('#tableBody tr.ex-row');
+    rows.forEach((tr, i) => {
+      tr.classList.remove('timer-active', 'timer-done');
+      if (i < activeIdx) tr.classList.add('timer-done');
+      if (i === activeIdx) {
+        tr.classList.add('timer-active');
+        tr.style.setProperty('--prog', pct.toFixed(1) + '%');
+        tr.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    });
+  }
+}
+
+function clearRowHighlights() {
+  document.querySelectorAll('#tableBody tr.ex-row').forEach(tr => {
+    tr.classList.remove('timer-active', 'timer-done');
+    tr.style.removeProperty('--prog');
+  });
+  document.getElementById('pbSongInfo').textContent = '';
+}
+
+// ── Focus Mode ─────────────────────────────────────────────────────────────
+let focusActive = false;
+let focusIndex = 0;
+let focusGroups = [];
+let autoScrollEnabled = localStorage.getItem('drillsheet_autoscroll') !== '0';
+
+function setMgmtVisible(visible) {
+  document.getElementById('mgmtBtns').style.display      = visible ? 'flex' : 'none';
+  document.getElementById('mgmtToggle').classList.remove('active');
+  document.getElementById('fileCount').style.display     = visible ? '' : 'none';
+  document.querySelector('.select-wrap').style.display   = visible ? '' : 'none';
+  document.getElementById('modeBtn').style.display       = 'none';
+  document.querySelector('.font-size-wrap').style.display = visible ? '' : 'none';
+  // Server badge: only show when visible AND it was already shown by server fetch
+  const sb = document.getElementById('serverBadge');
+  if (!visible) sb.style.display = 'none';
+}
+
+function toggleMgmt() {
+  const btn  = document.getElementById('mgmtToggle');
+  const open = document.getElementById('mgmtBtns').style.display !== 'none';
+  document.getElementById('mgmtBtns').style.display    = open ? 'none' : 'flex';
+  document.querySelector('.select-wrap').style.display = open ? 'none' : '';
+  btn.classList.toggle('active', !open);
+}
+
+function toggleFocusMode() {
+  focusActive = !focusActive;
+  const modeBtn = document.getElementById('modeBtn');
+  modeBtn.textContent = focusActive ? '≡ Table Mode' : '▶ Focus Mode';
+  modeBtn.classList.toggle('active', focusActive);
+  document.getElementById('sheetView').style.display = focusActive ? 'none' : 'block';
+  document.getElementById('focusView').style.display = focusActive ? 'block' : 'none';
+  const scrollBtn = document.getElementById('autoScrollBtn');
+  scrollBtn.style.display = focusActive ? '' : 'none';
+  scrollBtn.classList.toggle('active', focusActive && autoScrollEnabled);
+  if (focusActive) { focusIndex = 0; renderFocusCard(); }
+  else { clearRowHighlights(); document.getElementById('pbSongInfo').textContent = ''; }
+}
+
+function toggleAutoScroll() {
+  autoScrollEnabled = !autoScrollEnabled;
+  localStorage.setItem('drillsheet_autoscroll', autoScrollEnabled ? '1' : '0');
+  document.getElementById('autoScrollBtn').classList.toggle('active', autoScrollEnabled);
+}
+
+function focusStep(dir) {
+  focusIndex = Math.max(0, Math.min(focusGroups.length - 1, focusIndex + dir));
+  renderFocusCard();
+}
+
+function renderFocusCard() {
+  const g = focusGroups[focusIndex];
+  if (!g) return;
+  const total = focusGroups.length;
+  document.getElementById('pbSongInfo').textContent = `Drill ${focusIndex + 1} of ${total}`;
+
+  // Progress pips
+  const prog = document.getElementById('focusProgress');
+  prog.innerHTML = focusGroups.map((_,i) =>
+    `<div class="focus-pip ${i < focusIndex ? 'done' : i === focusIndex ? 'active' : ''}"></div>`
+  ).join('');
+
+  // Card content
+  const song = g.song.match(/^(.*?)\s*\((\d+:\d+)\)\s*$/) || [, g.song, ''];
+  const [, songName, dur] = song;
+  const [durM, durS] = dur ? dur.split(':').map(Number) : [0, 0];
+  const songDurSec = durM * 60 + (durS || 0);
+  const effectiveDurSec = songDurSec || (drillNameDurSec(g.drill) + 15);
+  const cadenceHTML = g.cadences.map(badgeHTML).join('') || '<span style="color:var(--text-dim)">—</span>';
+  let subCum = 0;
+  const hasRealDetails = g.details.length > 0 && !g.details.every(isIntensityOnly);
+  const isImplied = !hasRealDetails;
+  const detailsHTML = effectiveDetails(g).map((d, j) => {
+    const avail = effectiveDurSec - subCum;
+    const label = isImplied ? d + ' ***' : d;
+    const html = `<div class="focus-detail-line${j===0?' first':''}" data-subdrill="${j}">${escH(label)}${phaseMarkersHTML(d, avail, g.drill)}<span class="phase-remaining"></span></div>`;
+    subCum += parseSubdrillSec(d, avail, g.drill) || 0;
+    return html;
+  }).join('');
+
+  document.getElementById('focusCard').innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.6rem;">
+      <div class="focus-num" style="margin-bottom:0;">EXERCISE ${focusIndex + 1} / ${total}</div>
+      <button id="focusFlagBtn" class="flag-btn-focus${g.flag ? ' flag-'+g.flag : ''}" onclick="event.stopPropagation();cycleFlag(${focusIndex})">${getFlagLabel(g.flag)}</button>
+    </div>
+    <div class="focus-drill">${escH(g.drill)}</div>
+    <div class="focus-song">${escH(songName || '')}</div>
+    <div class="focus-song-progress"><div class="focus-song-progress-fill" id="focusProgFill"></div></div>
+    <div class="focus-prog-meta">
+      ${dur ? `<span class="focus-song-dur">⏱ ${dur}</span>` : '<span class="focus-song-dur"></span>'}
+      <span class="focus-song-remaining" id="focusProgLabel"></span>
+    </div>
+    <hr class="focus-divider">
+    ${detailsHTML ? `<div class="focus-details">${detailsHTML}</div>` : ''}
+    <div class="focus-cadence">${cadenceHTML}</div>
+  `;
+
+  // Always render up-next if there's a following drill
+  const nextG = focusGroups[focusIndex + 1];
+  const upNext = document.getElementById('upNext');
+  if (nextG) {
+    const ns = nextG.song.match(/^(.*?)\s*\((\d+:\d+)\)\s*$/) || [, nextG.song, ''];
+    const [, nSongName, nDur] = ns;
+    document.getElementById('upNextLabel').textContent  = 'Up Next';
+    document.getElementById('upNextDrill').textContent  = nextG.drill;
+    document.getElementById('upNextSong').textContent   = nSongName + (nDur ? `  ⏱ ${nDur}` : '');
+    document.getElementById('upNextCadence').innerHTML  = nextG.cadences.map(badgeHTML).join('') || '';
+    upNext.classList.add('visible');
+  } else {
+    upNext.classList.remove('visible');
+  }
+
+  // Ensure the bottom of the focus view is visible after card transition
+  if (autoScrollEnabled) {
+    requestAnimationFrame(() => {
+      const scrollTarget = (nextG && upNext.classList.contains('visible')) ? upNext : document.getElementById('focusCard');
+      const rect = scrollTarget.getBoundingClientRect();
+      if (rect.bottom > window.innerHeight) {
+        window.scrollBy({ top: rect.bottom - window.innerHeight + 16, behavior: 'smooth' });
+      }
+    });
+  }
+}
+
+// Parse total seconds from a subdrill detail line, e.g. "1st climb 30/sprint 10/recover 15" → 55
+// Returns the drill's details, inferring implied subtasks when none are present.
+function isIntensityOnly(detail) {
+  return /^[\s\/]*((?:very\s+)?(?:easy|light|low|moderate|mod|hard|heavy|high|tempo)\s*[\s\/]*)+$/i.test(detail.trim());
+}
+
+function effectiveDetails(g) {
+  const hasRealDetails = g.details.length > 0 && !g.details.every(isIntensityOnly);
+  if (hasRealDetails) return g.details;
+  const minuteMatch = g.drill.match(/(\d+)\s*(?:minute|min)/i);
+  if (minuteMatch && /\bclimb/i.test(g.drill)) {
+    const secs = parseInt(minuteMatch[1]) * 60;
+    return [`climb ${secs}/recover 15`];
+  }
+  if (/\brun|\bR\s+Resistance\b/i.test(g.drill)) {
+    return ['Running 30/Seated Climb 30/Climb 30/Recover 20'];
+  }
+  if (/\bjumps?\b/i.test(g.drill)) {
+    return ['Jumps 30/Recover 10'];
+  }
+  if (/sprints?\s+on\s+a\s+hill/i.test(g.drill)) {
+    return ['Sprint 30/Down 20/Recover 10'];
+  }
+  const sfMatch = g.drill.match(/standing\s+flat\s+([\d\/]+)/i);
+  if (sfMatch) {
+    const parts = sfMatch[1].split('/').map(n => parseInt(n)).filter(n => !isNaN(n));
+    if (parts.length >= 2) {
+      const labels = parts.map((n, i) => i === 0 ? `Standing Flat ${n}` : i === parts.length - 1 ? `Recover ${n}` : `${n}`);
+      return [labels.join('/')];
+    }
+  }
+  if (/\bclimb/i.test(g.drill)) {
+    return ['climb 60/recover 20'];
+  }
+  return [];
+}
+
+// Parse phase durations for a single detail string, resolving "to end" using songDur.
+function parsePhaseDurs(detail, songDur, drillName) {
+  // Expand special keywords before splitting on '/'
+  const expanded = detail
+    .replace(/\b\d+(?:st|nd|rd|th)\b\s*/gi, '')
+    .replace(/\d+\s*step\s+hills?/gi, '30/30/30/30/30')
+    .replace(/step\s+hills?/gi, '30/30/30/30')
+    .replace(/(?:then\s+a?\s*)?step\s+climbs?/gi, '30/30/30/30')
+    .replace(/recov(?:er|ery)?\s+then\s+(\d+)\s*(?:minute|min)\s+climb/gi, (_, n) => `recover 30/climb ${parseInt(n)*60}`)
+    .replace(/\bjumps\b(?!\s*\d)/gi, '30/10')
+    .replace(/\brecov(?:er|ery)?\b(?!\s*\d)(?!\s*then)/gi, '30')
+    .replace(/\b(\d+)\s*sec(?:ond)?s?\s+recov(?:er|ery)?\s*/gi, '$1/')
+    .replace(/\b(\d+)\s*steps?\/climb\b/gi, (_, n) => Array(parseInt(n)).fill('30').join('/'))
+    .replace(/\b(\d+)\s*steps?\b/gi, (_, n) => Array(parseInt(n)).fill('30').join('/'))
+    .replace(/\b(\d+)\s*(?:minute|min)s?\s+climb\b/gi, (_, n) => `${parseInt(n) * 60}/15`)
+    .replace(/\b(\d+)\s*(?:minute|min)s?\b/gi, (_, n) => String(parseInt(n) * 60))
+    .replace(/\b(sprint|recover(?:y)?|climb|rest|hold|flat)\s+(\d+)(?=\s+(?:sprint|recover(?:y)?|climb|rest|hold|flat)\s+\d)/gi, '$2/')
+    .replace(/\b(?:sprint|recover(?:y)?|climb|rest|hold|flat)\s+(\d+)\b/gi, '$1');
+  const phases = expanded.split('/');
+  const raw = phases.map(p => {
+    const t = p.trim();
+    const mTrail = t.match(/(\d+)\s*$/);
+    if (mTrail) return parseInt(mTrail[1]);
+    if (/to\s+end/i.test(t)) return 'toEnd';
+    if (/^(climb|recover|recovery)\s*$/i.test(t)) return 'toEnd';
+    const mLead = t.match(/^(\d+)/);
+    if (mLead) return parseInt(mLead[1]);
+    return null;
+  });
+  const knownSum = raw.reduce((a, d) => a + (typeof d === 'number' ? d : 0), 0);
+  const toEndDur = (songDur > knownSum) ? songDur - knownSum : 0;
+  const result = raw.map(d => d === 'toEnd' ? toEndDur : d).filter(d => typeof d === 'number' && d >= 0);
+  // No timing found — infer from drill name if provided
+  if (result.length === 0 && drillName) {
+    if (/\bjumps\b/i.test(drillName)) return [30, 10];
+    const minMatch = drillName.match(/(\d+)\s*(?:minute|min)/i);
+    if (minMatch && /\bclimb/i.test(drillName)) return [parseInt(minMatch[1]) * 60, 15];
+  }
+  return result;
+}
+
+function phaseMarkersHTML(detail, songDur, drillName) {
+  const durs = parsePhaseDurs(detail, songDur || 0, drillName);
+  if (durs.length < 2) return '';
+  const total = durs.reduce((a, b) => a + b, 0);
+  if (!total) return '';
+  let html = '', cum = 0;
+  for (let i = 0; i < durs.length - 1; i++) {
+    cum += durs[i];
+    html += `<span class="phase-marker" style="left:${(cum/total*100).toFixed(2)}%">▲</span>`;
+  }
+  return html;
+}
+
+function parseSubdrillSec(detail, songDur, drillName) {
+  const durs = parsePhaseDurs(detail, songDur || 0, drillName);
+  if (!durs.length) return null;
+  return durs.reduce((a, b) => a + b, 0);
+}
+
+function renderFocusProgress(pct, remainingSec, songDur) {
+  const fill  = document.getElementById('focusProgFill');
+  const label = document.getElementById('focusProgLabel');
+  if (fill)  fill.style.width = pct.toFixed(1) + '%';
+  if (label) label.textContent = remainingSec > 0 ? `−${fmtSec(remainingSec)} remaining` : '';
+
+  // Update active subdrill highlight
+  const g = focusGroups[focusIndex];
+  const gDetails = effectiveDetails(g);
+  if (g && gDetails.length > 0) {
+    const elapsedInSong = songDur > 0 ? (pct / 100) * songDur : 0;
+    const durations     = gDetails.map(d => parseSubdrillSec(d, songDur, g.drill));
+    const allParsed     = durations.every(d => d !== null);
+
+    let subIdx, subPct, subdrillStart = 0, shouldFlash = false;
+    let phaseRemaining = null, multiPhase = false;
+    if (allParsed) {
+      // Walk cumulative durations to find which subdrill we're in
+      let cum = 0;
+      subIdx = durations.length - 1;
+      for (let i = 0; i < durations.length; i++) {
+        const next = cum + durations[i];
+        if (elapsedInSong < next) {
+          subIdx = i;
+          subdrillStart = cum;
+          subPct = durations[i] > 0 ? Math.min(100, (elapsedInSong - cum) / durations[i] * 100) : 0;
+          break;
+        }
+        cum = next;
+      }
+      if (subPct === undefined) {
+        subdrillStart = cum - durations[durations.length - 1];
+        subPct = 100;
+      }
+
+      // Compute time remaining in current phase to trigger flash
+      const elapsedInSubdrill = elapsedInSong - subdrillStart;
+      const phaseDurs = parsePhaseDurs(gDetails[subIdx], songDur - subdrillStart, g.drill);
+      multiPhase = phaseDurs.length > 0;
+      const totalPhaseDur = phaseDurs.reduce((a, b) => a + b, 0);
+      const loopedElapsed = totalPhaseDur > 0 ? elapsedInSubdrill % totalPhaseDur : elapsedInSubdrill;
+      if (totalPhaseDur > 0) subPct = (loopedElapsed / totalPhaseDur) * 100;
+      let phaseCum = 0;
+      for (const pd of phaseDurs) {
+        const phaseEnd = phaseCum + pd;
+        if (loopedElapsed < phaseEnd) {
+          shouldFlash = (phaseEnd - loopedElapsed) <= 3;
+          phaseRemaining = Math.min(Math.ceil(phaseEnd - loopedElapsed), Math.ceil(remainingSec));
+          break;
+        }
+        phaseCum = phaseEnd;
+      }
+    } else {
+      // Fallback: equal slices
+      subIdx = Math.min(Math.floor(pct / 100 * gDetails.length), gDetails.length - 1);
+      const sliceSize = 100 / gDetails.length;
+      subPct = Math.min(100, (pct - subIdx * sliceSize) / sliceSize * 100);
+    }
+
+    document.querySelectorAll('#focusCard [data-subdrill]').forEach((el, i) => {
+      el.classList.toggle('subdrill-active', i === subIdx);
+      el.classList.toggle('subdrill-done',   i < subIdx);
+      el.classList.toggle('subdrill-flash',  i === subIdx && shouldFlash);
+      const remEl = el.querySelector('.phase-remaining');
+      if (i === subIdx) {
+        el.style.setProperty('--prog', subPct.toFixed(1) + '%');
+        if (remEl) remEl.textContent = multiPhase && phaseRemaining !== null ? phaseRemaining + 's' : '';
+      } else {
+        el.style.removeProperty('--prog');
+        if (remEl) remEl.textContent = '';
+      }
+    });
+  }
+
+  // Update up-next label with countdown when timer is running and ≤60s left
+  const upNextLabel = document.getElementById('upNextLabel');
+  if (upNextLabel && focusGroups[focusIndex + 1]) {
+    if (remainingSec > 0 && remainingSec <= 10)
+      upNextLabel.textContent = `Up Next — starting in ${Math.ceil(remainingSec)}s`;
+    else if (remainingSec > 0 && remainingSec <= 60)
+      upNextLabel.textContent = `Up Next — ${fmtSec(remainingSec)} left`;
+    else
+      upNextLabel.textContent = 'Up Next';
+  }
+}
+
+// ── Double-tap focus card to pause / resume ─────────────────────────────────
+let focusCardLastTap = 0;
+document.getElementById('focusCard').addEventListener('click', () => {
+  if (!focusActive) return;
+  const now = Date.now();
+  if (now - focusCardLastTap < 300) {
+    if (timerState === 'running') timerPause();
+    else if (timerState === 'paused') timerResume();
+    else if (timerState === 'stopped') timerStart();
+  }
+  focusCardLastTap = now;
+});
+
+// Keyboard nav in focus mode
+document.addEventListener('keydown', e => {
+  if (!focusActive) return;
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') focusStep(1);
+  if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   focusStep(-1);
+});
+
+// ── Bundle Export / Import / Server Sync ───────────────────────────────────
+function exportBundle() {
+  const sheets = getAll();
+  if (!Object.keys(sheets).length) { alert('No sheets to export.'); return; }
+  const bundle = { v: 1, exported: new Date().toISOString(), sheets };
+  const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'sheets.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function importBundle(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const bundle = JSON.parse(ev.target.result);
+      const incoming = bundle.sheets || bundle; // support both bundle format and raw object
+      const data = getAll();
+      let count = 0;
+      Object.entries(incoming).forEach(([name, csv]) => {
+        if (typeof csv === 'string') { data[name] = csv; count++; }
+      });
+      saveAll(data);
+      refreshDropdown(null);
+      alert(`Imported ${count} sheet${count !== 1 ? 's' : ''}.`);
+    } catch {
+      alert('Invalid bundle file.');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+async function fetchServerSheets() {
+  if (window.location.protocol === 'file:') return; // local file, skip
+  try {
+    const res = await fetch('./sheets.json', { cache: 'no-cache' });
+    if (!res.ok) return;
+    const bundle = await res.json();
+    const incoming = bundle.sheets || bundle;
+    const data = getAll();
+    let count = 0;
+    Object.entries(incoming).forEach(([name, csv]) => {
+      if (typeof csv === 'string') { data[name] = csv; count++; }
+    });
+    if (count > 0) {
+      saveAll(data);
+      refreshDropdown(null);
+      document.getElementById('serverBadge').style.display = '';
+      document.getElementById('serverBadge').title = `${count} sheet${count !== 1 ? 's' : ''} loaded from server`;
+    }
+  } catch { /* server not available or no sheets.json — silently ignore */ }
+}
+
+// ── Device Detection ───────────────────────────────────────────────────────
+const DEVICE_KEY = 'drillsheet_device';
+const DEVICE_ICONS = { laptop: '💻 Laptop', tablet: '📱 Tablet', phone: '📱 Phone' };
+const DEVICE_CYCLE = ['laptop', 'tablet', 'phone'];
+const FS_DEFAULTS  = { laptop: 1.0, tablet: 1.15, phone: 1.3 };
+
+function detectDevice() {
+  const w     = window.innerWidth;
+  const touch = navigator.maxTouchPoints > 0;
+  if (w < 600)                  return 'phone';
+  if (w < 1100 && touch)        return 'tablet';
+  if (w < 768)                  return 'tablet';
+  return 'laptop';
+}
+
+function applyDevice(device) {
+  document.body.classList.remove('device-laptop', 'device-tablet', 'device-phone');
+  document.body.classList.add('device-' + device);
+  const badge = document.getElementById('deviceBadge');
+  const icons = { laptop: '💻', tablet: '⬜', phone: '📱' };
+  badge.textContent = icons[device] + ' ' + device.charAt(0).toUpperCase() + device.slice(1);
+  localStorage.setItem(DEVICE_KEY, device);
+  // Only set font size default if user hasn't saved a preference
+  if (!localStorage.getItem('drillsheet_fs')) {
+    applyFontSize(FS_DEFAULTS[device] || 1.0);
+    document.getElementById('fsSlider').value = FS_DEFAULTS[device] || 1.0;
+  }
+  // Laptop mode forces table view; phone/tablet switch to focus view if a sheet is loaded
+  if (focusGroups.length) {
+    if (device === 'laptop' && focusActive) toggleFocusMode();
+    else if (device !== 'laptop' && !focusActive) toggleFocusMode();
+  }
+}
+
+function cycleDevice() {
+  const current = localStorage.getItem(DEVICE_KEY) || detectDevice();
+  const next = DEVICE_CYCLE[(DEVICE_CYCLE.indexOf(current) + 1) % DEVICE_CYCLE.length];
+  applyDevice(next);
+}
+
+// ── Wake Lock ──────────────────────────────────────────────────────────────
+// Uses NoSleep.js: Wake Lock API where available, looping video fallback for
+// iOS Safari (works on file:// and plain HTTP where Wake Lock API is blocked).
+const noSleep = typeof NoSleep !== 'undefined' ? new NoSleep() : null;
+
+async function acquireWakeLock() {
+  if (!noSleep) return;
+  try { await noSleep.enable(); } catch (e) { /* user gesture required or permission denied */ }
+}
+
+function releaseWakeLock() {
+  if (noSleep) noSleep.disable();
+}
+
+// Re-acquire if tab becomes visible again while timer is running
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && timerState === 'running') acquireWakeLock();
+});
+
+// ── Dark Mode ────────────────────────────────────────────────────────────────
+const DARK_KEY = 'drillsheet_dark';
+
+function applyDarkMode(dark) {
+  document.body.classList.toggle('dark', dark);
+  document.getElementById('darkToggle').textContent = dark ? '☀' : '🌙';
+}
+
+function toggleDarkMode() {
+  const isDark = document.body.classList.toggle('dark');
+  localStorage.setItem(DARK_KEY, isDark ? '1' : '0');
+  document.getElementById('darkToggle').textContent = isDark ? '☀' : '🌙';
+}
+
+// ── Font Size ───────────────────────────────────────────────────────────────
+function applyFontSize(val) {
+  val = parseFloat(val);
+  document.documentElement.style.setProperty('--fs', val);
+  document.getElementById('fsSlider').value = val;
+  localStorage.setItem('drillsheet_fs', val);
+}
+
+function resetFontSize() {
+  applyFontSize(1);
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+document.getElementById('btnStart').disabled = true;
+
+// Apply dark mode preference
+applyDarkMode(localStorage.getItem(DARK_KEY) === '1');
+
+// Apply device (saved override or auto-detected)
+const savedDevice = localStorage.getItem(DEVICE_KEY) || detectDevice();
+applyDevice(savedDevice);
+
+// Apply font size (may have been set by applyDevice above if no saved pref)
+const savedFs = parseFloat(localStorage.getItem('drillsheet_fs') || FS_DEFAULTS[savedDevice] || '1');
+document.getElementById('fsSlider').value = savedFs;
+applyFontSize(savedFs);
+
+// Re-detect on resize/orientation change (only if user hasn't manually overridden)
+window.addEventListener('resize', () => {
+  if (!localStorage.getItem(DEVICE_KEY)) applyDevice(detectDevice());
+});
+
+fetchServerSheets().then(() => refreshDropdown(null));
+</script>
+</body>
+</html>
