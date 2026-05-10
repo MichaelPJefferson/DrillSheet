@@ -617,14 +617,7 @@
     }
     .pb-display b { color: var(--accent-primary); font-weight: 400; }
     .pb-sep { color: var(--text-dim); }
-    .pb-song-info {
-      font-family: 'Barlow Condensed', sans-serif;
-      font-size: 0.88rem;
-      font-weight: 600;
-      letter-spacing: 0.06em;
-      color: var(--text-secondary);
-      margin-left: auto;
-    }
+
 
     /* ── Active / done row styles ── */
     tbody tr.ex-row.timer-active {
@@ -696,7 +689,7 @@
     }
     .up-next-drill {
       font-family: 'Barlow Condensed', sans-serif;
-      font-size: 1.4rem;
+      font-size: 1.9rem;
       font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 0.05em;
@@ -704,7 +697,7 @@
       line-height: 1;
     }
     .up-next-song {
-      font-size: 0.88rem;
+      font-size: 1.05rem;
       color: var(--text-secondary);
       margin-top: 0.2rem;
     }
@@ -727,7 +720,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 2rem 1rem 3rem;
+      padding: 0.5rem 1rem 3rem;
       min-height: 60vh;
     }
 
@@ -735,14 +728,14 @@
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      margin-bottom: 1.75rem;
+      margin-bottom: 0.5rem;
       width: 100%;
       max-width: 720px;
     }
     .focus-pip {
       flex: 1;
-      height: 4px;
-      border-radius: 2px;
+      height: 8px;
+      border-radius: 3px;
       background: var(--bg-card);
       transition: background 0.25s;
     }
@@ -758,7 +751,14 @@
       box-shadow: 0 12px 48px rgba(0,0,0,0.12);
       padding: 2.5rem 2.75rem;
       animation: cardIn 0.22s ease;
+      position: relative;
     }
+    .focus-card-action {
+      position: absolute;
+      bottom: 1rem;
+      right: 1rem;
+    }
+    .focus-card-action .btn { font-size: 0.85rem; padding: 0.4rem 0.9rem; }
     @keyframes cardIn {
       from { opacity: 0; transform: translateY(10px); }
       to   { opacity: 1; transform: translateY(0); }
@@ -915,9 +915,10 @@
     .device-tablet .focus-drill { font-size: calc(2.8rem * var(--fs)); }
     .device-tablet .btn-nav { padding: 0.8rem 2rem; font-size: 1.1rem; }
     .device-tablet .pb-display { font-size: 1.4rem; padding: 0.4rem 1.1rem; gap: 1.2rem; }
+    #focusTabletNav { justify-content: flex-start; gap: 0.75rem; flex-wrap: wrap; margin-top: 1.25rem; }
     .device-tablet .pb-display b { font-size: 1.6rem; }
     .device-tablet .focus-detail-line,
-    .device-phone  .focus-detail-line { padding-bottom: 1.4rem; position: relative; }
+    .device-phone  .focus-detail-line { padding-bottom: 1.4rem; padding-right: 3.5rem; position: relative; }
 
 
     /* phase time-remaining counter */
@@ -982,12 +983,34 @@
     .device-phone .focus-drill { font-size: calc(2.4rem * var(--fs)); }
     .device-phone .focus-song { font-size: calc(1rem * var(--fs)); }
     .device-phone .up-next { padding: 0.65rem 0.9rem; }
-    .device-phone .up-next-drill { font-size: 1.15rem; }
-    .device-phone  .pb-song-info { font-size: 0.78rem; padding: 0 0.25rem; }
-    .device-tablet .pb-song-info,
-    .device-phone  .pb-song-info { margin-left: 0; }
+    .device-phone .up-next-drill { font-size: 1.5rem; }
+
     .device-tablet .pb-display,
     .device-phone  .pb-display   { order: 1; }
+
+    /* ── Countdown overlay ── */
+    @keyframes countdown-pop {
+      0%   { opacity: 0; transform: scale(2.2); }
+      18%  { opacity: 1; transform: scale(1);   }
+      72%  { opacity: 1; transform: scale(1);   }
+      100% { opacity: 0; transform: scale(0.5); }
+    }
+    #countdownOverlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: rgba(0,0,0,0.55);
+      align-items: center;
+      justify-content: center;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 14rem;
+      font-weight: 900;
+      color: #fff;
+      letter-spacing: -0.04em;
+      pointer-events: none;
+    }
+    #countdownOverlay.pop { animation: countdown-pop 0.92s ease-in-out forwards; }
 
     /* ── Existing small-screen fallback ── */
     @media (max-width: 480px) {
@@ -1119,7 +1142,6 @@
     <button class="btn btn-stop"  id="btnStop"  onclick="if(confirm('Stop the timer and reset?'))timerStop()" style="display:none">■ <span class="btn-label">Stop</span></button>
     <button class="btn btn-mode"  id="btnSkipPrev" onclick="timerSkip(-1)" style="display:none">⏮ <span class="btn-label">Prev</span></button>
     <button class="btn btn-mode"  id="btnSkipNext" onclick="timerSkip(1)"  style="display:none">⏭ <span class="btn-label">Next</span></button>
-    <button class="btn btn-mode"  id="autoScrollBtn" onclick="toggleAutoScroll()" style="display:none" title="Auto-scroll to keep Up Next visible">⇩ <span class="btn-label">Scroll</span></button>
     <div class="pb-display">
       <span>Elapsed&nbsp;<b id="pbElapsed">0:00</b></span>
       <span class="pb-sep">|</span>
@@ -1127,7 +1149,6 @@
       <span class="pb-sep">|</span>
       <span>Total&nbsp;<b id="pbTotal">—</b></span>
     </div>
-    <span class="pb-song-info" id="pbSongInfo"></span>
   </div>
 
   <main class="main" id="main">
@@ -1184,10 +1205,12 @@
           <div class="up-next-song" id="upNextSong"></div>
           <div class="up-next-cadence" id="upNextCadence"></div>
         </div>
+        <div class="focus-nav" id="focusTabletNav"></div>
       </div>
     </div>
 
   </main>
+  <div id="countdownOverlay"></div>
 
 <script>
 // ── Clock ──────────────────────────────────────────────────────────────────
@@ -1430,10 +1453,14 @@ function loadSelected() {
   const cloneBtn = document.getElementById('cloneBtn');
   const modeBtn = document.getElementById('modeBtn');
   if (!name) {
+    document.title = 'Drill Sheet';
     document.getElementById('emptyState').style.display = '';
     document.getElementById('sheetView').style.display = 'none';
     document.getElementById('focusView').style.display = 'none';
     document.getElementById('btnStart').disabled = true;
+    document.getElementById('btnStop').style.display     = 'none';
+    document.getElementById('btnSkipPrev').style.display = 'none';
+    document.getElementById('btnSkipNext').style.display = 'none';
     delBtn.style.display = 'none';
     cloneBtn.style.display = 'none';
     modeBtn.style.display = 'none';
@@ -1453,6 +1480,7 @@ function loadSelected() {
   modeBtn.textContent = '▶ Focus Mode';
   modeBtn.classList.remove('active');
   document.getElementById('focusView').style.display = 'none';
+  document.title = 'Drill Sheet – ' + name.replace(/\.csv$/i, '');
   const groups = groupRows(parseCSV(csv));
   focusGroups = groups;
   renderSheet(groups, name);
@@ -1466,6 +1494,7 @@ function deleteSelected() {
   const data = getAll();
   delete data[name];
   saveAll(data);
+  document.title = 'Drill Sheet';
   document.getElementById('fileSelect').value = '';
   refreshDropdown(null);
   document.getElementById('emptyState').style.display = '';
@@ -1476,6 +1505,9 @@ function deleteSelected() {
   document.getElementById('modeBtn').style.display = 'none';
   focusActive = false; focusGroups = [];
   document.getElementById('btnStart').disabled = true;
+  document.getElementById('btnStop').style.display     = 'none';
+  document.getElementById('btnSkipPrev').style.display = 'none';
+  document.getElementById('btnSkipNext').style.display = 'none';
   setMgmtVisible(true);
 }
 
@@ -1632,6 +1664,9 @@ function renderSheet(groups, filename) {
   document.getElementById('emptyState').style.display = 'none';
   document.getElementById('sheetView').style.display = '';
   document.getElementById('btnStart').disabled = false;
+  document.getElementById('btnStop').style.display     = '';
+  document.getElementById('btnSkipPrev').style.display = '';
+  document.getElementById('btnSkipNext').style.display = '';
   buildTimings(groups);
   document.getElementById('pbRemaining').textContent = fmtSec(totalDurSec);
   document.getElementById('sheetTitle').textContent = filename.replace(/\.csv$/i,'');
@@ -1884,6 +1919,7 @@ function buildTimings(groups) {
 }
 
 function scrollToPlaybar() {
+  if (focusActive && document.body.classList.contains('device-tablet')) return;
   const pb     = document.getElementById('playbackBar');
   const header = document.querySelector('.header');
   const top    = pb.getBoundingClientRect().top + window.scrollY - header.offsetHeight;
@@ -1892,18 +1928,39 @@ function scrollToPlaybar() {
 
 function timerStart() {
   if (timerState === 'running') return;
-  timerState  = 'running';
-  timerElapsed = 0;
-  timerTickAt  = Date.now();
+  document.getElementById('btnStart').style.display = 'none';
   scrollToPlaybar();
-  document.getElementById('btnStart').style.display    = 'none';
-  document.getElementById('btnPause').style.display    = '';
-  document.getElementById('btnResume').style.display   = 'none';
-  document.getElementById('btnStop').style.display     = '';
-  document.getElementById('btnSkipPrev').style.display = '';
-  document.getElementById('btnSkipNext').style.display = '';
-  timerInterval = setInterval(timerTick, 100);
-  acquireWakeLock();
+  let count = 3;
+  const overlay = document.getElementById('countdownOverlay');
+  const showCount = () => {
+    overlay.textContent = count;
+    overlay.classList.remove('pop');
+    void overlay.offsetWidth;
+    overlay.classList.add('pop');
+    overlay.style.display = 'flex';
+  };
+  showCount();
+  const cd = setInterval(() => {
+    count--;
+    if (count > 0) {
+      showCount();
+    } else {
+      clearInterval(cd);
+      overlay.style.display = 'none';
+      overlay.classList.remove('pop');
+      timerState   = 'running';
+      timerElapsed = 0;
+      timerTickAt  = Date.now();
+      document.getElementById('btnPause').style.display    = '';
+      document.getElementById('btnResume').style.display   = 'none';
+      document.getElementById('btnStop').style.display     = '';
+      document.getElementById('btnSkipPrev').style.display = '';
+      document.getElementById('btnSkipNext').style.display = '';
+      timerInterval = setInterval(timerTick, 100);
+      acquireWakeLock();
+      syncFocusCardAction();
+    }
+  }, 1000);
 }
 
 function timerPause() {
@@ -1914,16 +1971,38 @@ function timerPause() {
   document.getElementById('btnPause').style.display  = 'none';
   document.getElementById('btnResume').style.display = '';
   updateTRW(totalDurSec - timerElapsed / 1000, 'paused');
+  syncFocusCardAction();
 }
 
 function timerResume() {
   if (timerState !== 'paused') return;
-  timerState  = 'running';
-  timerTickAt = Date.now();
   document.getElementById('btnResume').style.display = 'none';
-  document.getElementById('btnPause').style.display  = '';
-  timerInterval = setInterval(timerTick, 100);
-  acquireWakeLock();
+  let count = 3;
+  const overlay = document.getElementById('countdownOverlay');
+  const showCount = () => {
+    overlay.textContent = count;
+    overlay.classList.remove('pop');
+    void overlay.offsetWidth;
+    overlay.classList.add('pop');
+    overlay.style.display = 'flex';
+  };
+  showCount();
+  const cd = setInterval(() => {
+    count--;
+    if (count > 0) {
+      showCount();
+    } else {
+      clearInterval(cd);
+      overlay.style.display = 'none';
+      overlay.classList.remove('pop');
+      timerState  = 'running';
+      timerTickAt = Date.now();
+      document.getElementById('btnPause').style.display = '';
+      timerInterval = setInterval(timerTick, 100);
+      acquireWakeLock();
+      syncFocusCardAction();
+    }
+  }, 1000);
 }
 
 function timerStop() {
@@ -1933,19 +2012,15 @@ function timerStop() {
   document.getElementById('btnStart').style.display    = '';
   document.getElementById('btnPause').style.display    = 'none';
   document.getElementById('btnResume').style.display   = 'none';
-  document.getElementById('btnStop').style.display     = 'none';
-  document.getElementById('btnSkipPrev').style.display = 'none';
-  document.getElementById('btnSkipNext').style.display = 'none';
   document.getElementById('pbElapsed').textContent   = '0:00';
   document.getElementById('pbRemaining').textContent = fmtSec(totalDurSec);
-  document.getElementById('pbSongInfo').textContent  = '';
   updateTRW(totalDurSec, 'stopped');
   clearRowHighlights();
   releaseWakeLock();
+  syncFocusCardAction();
 }
 
 function timerSkip(dir) {
-  if (timerState === 'stopped') return;
   const elapsed = (timerState === 'running'
     ? timerElapsed + Date.now() - timerTickAt
     : timerElapsed) / 1000;
@@ -1971,10 +2046,7 @@ function timerSkip(dir) {
     if (target === -1) return; // already at last song
   }
 
-  const newElapsed = rowCumulative[target] * 1000;
-  timerElapsed = newElapsed;
-  if (timerState === 'running') timerTickAt = Date.now();
-  timerTick();
+  timerSeekTo(target);
 }
 
 function updateTRW(remainingSec, state) {
@@ -2015,6 +2087,7 @@ function timerSeekTo(idx) {
     document.getElementById('btnSkipNext').style.display = '';
     // Fake timerTickAt so elapsed math works (paused state doesn't use it, but be safe)
     timerTickAt = Date.now();
+    syncFocusCardAction();
   } else {
     timerElapsed = newElapsed;
     if (timerState === 'running') timerTickAt = Date.now();
@@ -2054,9 +2127,6 @@ function timerTick() {
   document.getElementById('pbRemaining').textContent = fmtSec(totalRemaining);
   updateTRW(totalRemaining, timerState);
   const g = focusGroups[activeIdx];
-  if (g) document.getElementById('pbSongInfo').textContent = focusActive
-    ? `Drill ${focusIndex + 1} of ${focusGroups.length}`
-    : `Now: ${g.drill}${g.song ? ' — ' + g.song : ''} (−${fmtSec(remaining)})`;
 
   if (focusActive) {
     // Drive focus mode — advance card when song changes
@@ -2082,15 +2152,12 @@ function clearRowHighlights() {
     tr.classList.remove('timer-active', 'timer-done');
     tr.style.removeProperty('--prog');
   });
-  document.getElementById('pbSongInfo').textContent = '';
 }
 
 // ── Focus Mode ─────────────────────────────────────────────────────────────
 let focusActive = false;
 let focusIndex = 0;
 let focusGroups = [];
-let autoScrollEnabled = localStorage.getItem('drillsheet_autoscroll') !== '0';
-
 function setMgmtVisible(visible) {
   document.getElementById('mgmtBtns').style.display      = visible ? 'flex' : 'none';
   document.getElementById('mgmtToggle').classList.remove('active');
@@ -2111,6 +2178,26 @@ function toggleMgmt() {
   btn.classList.toggle('active', !open);
 }
 
+function syncTabletTransport() {
+  const tabletNav = document.getElementById('focusTabletNav');
+  const pbBar     = document.getElementById('playbackBar');
+  const pbDisplay = pbBar.querySelector('.pb-display');
+  const ids = ['btnStop','btnSkipPrev','btnSkipNext'];
+  const toTablet = focusActive && document.body.classList.contains('device-tablet');
+  const mainEl = document.getElementById('main');
+  if (toTablet) {
+    ids.forEach(id => tabletNav.appendChild(document.getElementById(id)));
+    pbDisplay.style.display = 'none';
+    pbBar.style.display = 'none';
+    mainEl.style.paddingTop = '0';
+  } else {
+    ids.forEach(id => pbBar.insertBefore(document.getElementById(id), pbDisplay));
+    pbDisplay.style.display = '';
+    pbBar.style.display = '';
+    mainEl.style.paddingTop = '';
+  }
+}
+
 function toggleFocusMode() {
   focusActive = !focusActive;
   const modeBtn = document.getElementById('modeBtn');
@@ -2118,18 +2205,11 @@ function toggleFocusMode() {
   modeBtn.classList.toggle('active', focusActive);
   document.getElementById('sheetView').style.display = focusActive ? 'none' : 'block';
   document.getElementById('focusView').style.display = focusActive ? 'block' : 'none';
-  const scrollBtn = document.getElementById('autoScrollBtn');
-  scrollBtn.style.display = focusActive ? '' : 'none';
-  scrollBtn.classList.toggle('active', focusActive && autoScrollEnabled);
+  syncTabletTransport();
   if (focusActive) { focusIndex = 0; renderFocusCard(); }
-  else { clearRowHighlights(); document.getElementById('pbSongInfo').textContent = ''; }
+  else { clearRowHighlights(); }
 }
 
-function toggleAutoScroll() {
-  autoScrollEnabled = !autoScrollEnabled;
-  localStorage.setItem('drillsheet_autoscroll', autoScrollEnabled ? '1' : '0');
-  document.getElementById('autoScrollBtn').classList.toggle('active', autoScrollEnabled);
-}
 
 function focusStep(dir) {
   focusIndex = Math.max(0, Math.min(focusGroups.length - 1, focusIndex + dir));
@@ -2140,8 +2220,6 @@ function renderFocusCard() {
   const g = focusGroups[focusIndex];
   if (!g) return;
   const total = focusGroups.length;
-  document.getElementById('pbSongInfo').textContent = `Drill ${focusIndex + 1} of ${total}`;
-
   // Progress pips
   const prog = document.getElementById('focusProgress');
   prog.innerHTML = focusGroups.map((_,i) =>
@@ -2181,6 +2259,7 @@ function renderFocusCard() {
     <hr class="focus-divider">
     ${detailsHTML ? `<div class="focus-details">${detailsHTML}</div>` : ''}
     <div class="focus-cadence">${cadenceHTML}</div>
+    <div class="focus-card-action" id="focusCardAction"></div>
   `;
 
   // Always render up-next if there's a following drill
@@ -2198,16 +2277,7 @@ function renderFocusCard() {
     upNext.classList.remove('visible');
   }
 
-  // Ensure the bottom of the focus view is visible after card transition
-  if (autoScrollEnabled) {
-    requestAnimationFrame(() => {
-      const scrollTarget = (nextG && upNext.classList.contains('visible')) ? upNext : document.getElementById('focusCard');
-      const rect = scrollTarget.getBoundingClientRect();
-      if (rect.bottom > window.innerHeight) {
-        window.scrollBy({ top: rect.bottom - window.innerHeight + 16, behavior: 'smooth' });
-      }
-    });
-  }
+  syncFocusCardAction();
 }
 
 // Parse total seconds from a subdrill detail line, e.g. "1st climb 30/sprint 10/recover 15" → 55
@@ -2393,18 +2463,122 @@ function renderFocusProgress(pct, remainingSec, songDur) {
   }
 }
 
-// ── Double-tap focus card to pause / resume ─────────────────────────────────
+// ── Focus card action button (Start / Resume) ────────────────────────────────
+function syncFocusCardAction() {
+  const el = document.getElementById('focusCardAction');
+  if (!el) return;
+  if (timerState === 'stopped') {
+    el.innerHTML = '<button class="btn btn-play" onclick="timerStart()">▶ Start</button>';
+  } else if (timerState === 'paused') {
+    el.innerHTML = '<button class="btn btn-play" onclick="timerResume()">▶ Resume</button>';
+  } else if (timerState === 'running') {
+    el.innerHTML = '<button class="btn btn-pause" onclick="timerPause()">⏸ Pause</button>';
+  }
+}
+
+// ── Double-tap focus card to open edit mode ───────────────────────────────────
 let focusCardLastTap = 0;
-document.getElementById('focusCard').addEventListener('click', () => {
+document.getElementById('focusCard').addEventListener('click', e => {
   if (!focusActive) return;
+  if (e.target.closest('button')) return; // don't trigger on button clicks
   const now = Date.now();
   if (now - focusCardLastTap < 300) {
-    if (timerState === 'running') timerPause();
-    else if (timerState === 'paused') timerResume();
-    else if (timerState === 'stopped') timerStart();
+    renderFocusCardEdit();
   }
   focusCardLastTap = now;
 });
+
+// ── Focus card edit mode ──────────────────────────────────────────────────────
+function renderFocusCardEdit() {
+  const g = focusGroups[focusIndex];
+  if (!g) return;
+
+  const card = document.getElementById('focusCard');
+  card.innerHTML = '';
+
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'display:flex;flex-direction:column;gap:0.6rem;';
+
+  const mkLabel = txt => {
+    const l = document.createElement('div');
+    l.textContent = txt;
+    l.style.cssText = 'font-size:0.78rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-dim);margin-top:0.25rem;';
+    return l;
+  };
+
+  const mkInput = val => {
+    const inp = document.createElement('input');
+    inp.value = val;
+    inp.style.cssText = 'width:100%;padding:0.45rem 0.7rem;border:1px solid var(--border);border-radius:6px;background:var(--bg-primary);color:var(--text-primary);font-size:0.95rem;font-family:inherit;';
+    return inp;
+  };
+
+  const drillInput = mkInput(g.drill);
+  const songInput  = mkInput(g.song);
+
+  const detailsContainer = document.createElement('div');
+  detailsContainer.id = 'fcEditDetails';
+  detailsContainer.style.cssText = 'display:flex;flex-direction:column;gap:0.3rem;';
+
+  const addDetailRow = (val) => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;gap:0.35rem;align-items:center;';
+    const inp = mkInput(val);
+    inp.className = 'fc-detail-inp';
+    inp.style.flex = '1';
+    const del = document.createElement('button');
+    del.textContent = '✕';
+    del.className = 'btn btn-stop';
+    del.style.cssText = 'padding:0.35rem 0.55rem;font-size:0.85rem;flex-shrink:0;';
+    del.onclick = () => row.remove();
+    row.appendChild(inp);
+    row.appendChild(del);
+    detailsContainer.appendChild(row);
+  };
+
+  g.details.forEach(d => addDetailRow(d));
+
+  const addBtn = document.createElement('button');
+  addBtn.textContent = '+ Add subtask';
+  addBtn.className = 'btn btn-mode';
+  addBtn.style.cssText = 'align-self:flex-start;font-size:0.82rem;';
+  addBtn.onclick = () => addDetailRow('');
+
+  const actions = document.createElement('div');
+  actions.style.cssText = 'display:flex;gap:0.5rem;margin-top:0.5rem;';
+
+  const saveBtn = document.createElement('button');
+  saveBtn.textContent = 'Save';
+  saveBtn.className = 'btn btn-play';
+  saveBtn.onclick = () => {
+    g.drill = drillInput.value.trim();
+    g.song  = songInput.value.trim();
+    g.details = Array.from(detailsContainer.querySelectorAll('.fc-detail-inp'))
+      .map(i => i.value.trim()).filter(v => v);
+    buildTimings(focusGroups);
+    persistEdits();
+    renderFocusCard();
+    syncFocusCardAction();
+  };
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.className = 'btn btn-mode';
+  cancelBtn.onclick = () => { renderFocusCard(); syncFocusCardAction(); };
+
+  actions.appendChild(saveBtn);
+  actions.appendChild(cancelBtn);
+
+  wrap.appendChild(mkLabel('Drill'));
+  wrap.appendChild(drillInput);
+  wrap.appendChild(mkLabel('Song'));
+  wrap.appendChild(songInput);
+  wrap.appendChild(mkLabel('Subtasks'));
+  wrap.appendChild(detailsContainer);
+  wrap.appendChild(addBtn);
+  wrap.appendChild(actions);
+  card.appendChild(wrap);
+}
 
 // Keyboard nav in focus mode
 document.addEventListener('keydown', e => {
@@ -2412,6 +2586,21 @@ document.addEventListener('keydown', e => {
   if (e.key === 'ArrowRight' || e.key === 'ArrowDown') focusStep(1);
   if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   focusStep(-1);
 });
+
+// Swipe left/right in table mode for prev/next song
+let _swipeX = null, _swipeY = null;
+document.addEventListener('touchstart', e => {
+  _swipeX = e.changedTouches[0].clientX;
+  _swipeY = e.changedTouches[0].clientY;
+}, { passive: true });
+document.addEventListener('touchend', e => {
+  if (_swipeX === null) return;
+  const dx = e.changedTouches[0].clientX - _swipeX;
+  const dy = e.changedTouches[0].clientY - _swipeY;
+  _swipeX = _swipeY = null;
+  if (Math.abs(dx) < 60 || Math.abs(dx) <= Math.abs(dy)) return;
+  timerSkip(dx < 0 ? 1 : -1);
+}, { passive: true });
 
 // ── Bundle Export / Import / Server Sync ───────────────────────────────────
 function exportBundle() {
@@ -2503,6 +2692,7 @@ function applyDevice(device) {
     if (device === 'laptop' && focusActive) toggleFocusMode();
     else if (device !== 'laptop' && !focusActive) toggleFocusMode();
   }
+  syncTabletTransport();
 }
 
 function cycleDevice() {
@@ -2576,6 +2766,7 @@ window.addEventListener('resize', () => {
   if (!localStorage.getItem(DEVICE_KEY)) applyDevice(detectDevice());
 });
 
+refreshDropdown(null);
 fetchServerSheets().then(() => refreshDropdown(null));
 </script>
 </body>
