@@ -832,6 +832,13 @@
     .focus-detail-line.subdrill-done {
       opacity: 0.28;
     }
+    .focus-detail-line.subdrill-uniform {
+      border-left: 5px solid var(--accent-primary);
+      background: rgba(0,105,180,0.10);
+      color: var(--text-primary);
+      font-weight: 700;
+      box-shadow: inset 0 0 0 1px rgba(0,105,180,0.18);
+    }
     @keyframes subdrillFlash {
       0%, 100% { opacity: 1; }
       50%       { opacity: 0.25; }
@@ -945,7 +952,9 @@
       pointer-events: none;
     }
     .device-tablet .subdrill-active .phase-marker,
-    .device-phone  .subdrill-active .phase-marker { color: var(--accent-primary); }
+    .device-phone  .subdrill-active .phase-marker,
+    .device-tablet .subdrill-uniform .phase-marker,
+    .device-phone  .subdrill-uniform .phase-marker { color: var(--accent-primary); }
 
     /* ── Phone adaptations ── */
     .device-phone .header { padding: 0 0.75rem; height: 56px; }
@@ -1117,6 +1126,7 @@
       </button>
       <button class="btn btn-mode" onclick="exportBundle()" title="Download all sheets as a bundle file">⬇ Export Bundle</button>
       <button class="btn btn-mode" onclick="document.getElementById('bundleInput').click()" title="Load a previously exported bundle">⬆ Import Bundle</button>
+      <button class="btn btn-mode" id="subtaskProgressBtn" onclick="toggleSubtaskProgress()" title="Toggle per-subtask progress highlighting">◧ Subtask Progress Off</button>
       <input type="file" id="bundleInput" accept=".json" style="display:none" onchange="importBundle(event)">
     </div>
     <button class="btn btn-mode" id="modeBtn" onclick="toggleFocusMode()" style="display:none">
@@ -1417,6 +1427,13 @@ const STORE = 'drillsheet_v1';
 function getAll() { try { return JSON.parse(localStorage.getItem(STORE)||'{}'); } catch { return {}; } }
 function saveAll(d) { localStorage.setItem(STORE, JSON.stringify(d)); }
 
+// Sheets the user has edited locally. Server sync must never silently overwrite these.
+const DIRTY_STORE = 'drillsheet_dirty_v1';
+function getDirty() { try { return new Set(JSON.parse(localStorage.getItem(DIRTY_STORE)||'[]')); } catch { return new Set(); } }
+function saveDirty(set) { localStorage.setItem(DIRTY_STORE, JSON.stringify([...set])); }
+function markDirty(name) { if (!name) return; const s = getDirty(); s.add(name); saveDirty(s); }
+function clearDirty(name) { const s = getDirty(); if (s.delete(name)) saveDirty(s); }
+
 // ── Upload ─────────────────────────────────────────────────────────────────
 function handleUpload(e) {
   const files = Array.from(e.target.files);
@@ -1426,6 +1443,7 @@ function handleUpload(e) {
     const r = new FileReader();
     r.onload = ev => {
       data[f.name] = ev.target.result;
+      markDirty(f.name);
       last = f.name;
       if (++done === files.length) { saveAll(data); refreshDropdown(last); }
     };
@@ -1497,6 +1515,7 @@ function deleteSelected() {
   const data = getAll();
   delete data[name];
   saveAll(data);
+  clearDirty(name);
   document.title = 'Drill Sheet';
   document.getElementById('fileSelect').value = '';
   refreshDropdown(null);
@@ -1528,6 +1547,7 @@ function cloneSelected() {
   if (data[key]) { alert(`A sheet named "${key}" already exists.`); return; }
   data[key] = csv;
   saveAll(data);
+  markDirty(key);
   refreshDropdown(key);
 }
 
@@ -1767,6 +1787,7 @@ function persistEdits() {
   const data = getAll();
   data[currentFile] = groupsToCSV(focusGroups);
   saveAll(data);
+  markDirty(currentFile);
 }
 
 function rebuildTableRows() {
@@ -1888,6 +1909,8 @@ let timerInterval = null;
 let rowDurations  = [];        // seconds per group row
 let rowCumulative = [];        // cumulative start-second for each row
 let totalDurSec   = 0;
+const SUBTASK_PROGRESS_KEY = 'drillsheet_subtask_progress';
+let subtaskProgressOn = false;
 
 function parseDurSec(song) {
   const m = song.match(/\((\d+):(\d+)\)/);
@@ -2413,6 +2436,27 @@ function renderFocusProgress(pct, remainingSec, songDur) {
   if (fill)  fill.style.width = pct.toFixed(1) + '%';
   if (label) label.textContent = remainingSec > 0 ? `−${fmtSec(remainingSec)} remaining` : '';
 
+  if (!subtaskProgressOn) {
+    document.querySelectorAll('#focusCard [data-subdrill]').forEach(el => {
+      el.classList.add('subdrill-uniform');
+      el.classList.remove('subdrill-active', 'subdrill-done', 'subdrill-flash');
+      el.style.removeProperty('--prog');
+      const remEl = el.querySelector('.phase-remaining');
+      if (remEl) remEl.textContent = '';
+    });
+
+    const upNextLabel = document.getElementById('upNextLabel');
+    if (upNextLabel && focusGroups[focusIndex + 1]) {
+      if (remainingSec > 0 && remainingSec <= 10)
+        upNextLabel.textContent = `Up Next — starting in ${Math.ceil(remainingSec)}s`;
+      else if (remainingSec > 0 && remainingSec <= 60)
+        upNextLabel.textContent = `Up Next — ${fmtSec(remainingSec)} left`;
+      else
+        upNextLabel.textContent = 'Up Next';
+    }
+    return;
+  }
+
   // Update active subdrill highlight
   const g = focusGroups[focusIndex];
   const gDetails = effectiveDetails(g);
@@ -2467,6 +2511,7 @@ function renderFocusProgress(pct, remainingSec, songDur) {
     }
 
     document.querySelectorAll('#focusCard [data-subdrill]').forEach((el, i) => {
+      el.classList.remove('subdrill-uniform');
       el.classList.toggle('subdrill-active', i === subIdx);
       el.classList.toggle('subdrill-done',   i < subIdx);
       el.classList.toggle('subdrill-flash',  i === subIdx && shouldFlash);
@@ -2643,6 +2688,13 @@ function exportBundle() {
   a.download = 'sheets.json';
   a.click();
   URL.revokeObjectURL(a.href);
+  // Exporting is the "publish" step: these edits are now in the bundle you'll upload,
+  // so clear the local-edit flags. Future server updates for these sheets are welcome again.
+  const hadEdits = getDirty().size;
+  saveDirty(new Set());
+  alert('Downloaded sheets.json'
+    + (hadEdits ? ` (${hadEdits} edited sheet${hadEdits !== 1 ? 's' : ''}).` : '.')
+    + '\n\nNext step: upload this file to your server, replacing the existing sheets.json, to publish your edits.');
 }
 
 function importBundle(e) {
@@ -2677,15 +2729,23 @@ async function fetchServerSheets() {
     const bundle = await res.json();
     const incoming = bundle.sheets || bundle;
     const data = getAll();
-    let count = 0;
+    const dirty = getDirty();
+    let count = 0, skipped = 0;
     Object.entries(incoming).forEach(([name, csv]) => {
-      if (typeof csv === 'string') { data[name] = csv; count++; }
+      if (typeof csv !== 'string') return;
+      // Never clobber a sheet the user has edited locally.
+      if (dirty.has(name)) { skipped++; return; }
+      data[name] = csv; count++;
     });
     if (count > 0) {
       saveAll(data);
       refreshDropdown(null);
-      document.getElementById('serverBadge').style.display = '';
-      document.getElementById('serverBadge').title = `${count} sheet${count !== 1 ? 's' : ''} loaded from server`;
+    }
+    if (count > 0 || skipped > 0) {
+      const badge = document.getElementById('serverBadge');
+      badge.style.display = '';
+      badge.title = `${count} sheet${count !== 1 ? 's' : ''} loaded from server`
+        + (skipped ? ` · ${skipped} local edit${skipped !== 1 ? 's' : ''} preserved` : '');
     }
   } catch { /* server not available or no sheets.json — silently ignore */ }
 }
@@ -2764,6 +2824,34 @@ function toggleDarkMode() {
   document.getElementById('darkToggle').textContent = isDark ? '☀' : '🌙';
 }
 
+// ── Subtask Progress Toggle ───────────────────────────────────────────────
+function syncSubtaskProgressButton() {
+  const btn = document.getElementById('subtaskProgressBtn');
+  if (!btn) return;
+  btn.classList.toggle('active', subtaskProgressOn);
+  btn.innerHTML = subtaskProgressOn
+    ? '◨ <span class="btn-label">Subtask Progress On</span>'
+    : '◧ <span class="btn-label">Subtask Progress Off</span>';
+}
+
+function toggleSubtaskProgress() {
+  subtaskProgressOn = !subtaskProgressOn;
+  localStorage.setItem(SUBTASK_PROGRESS_KEY, subtaskProgressOn ? '1' : '0');
+  syncSubtaskProgressButton();
+
+  if (focusActive) {
+    const elapsed = (timerState === 'running'
+      ? timerElapsed + Date.now() - timerTickAt
+      : timerElapsed) / 1000;
+    const activeIdx = getActiveIdx(elapsed);
+    const rowElapsed = elapsed - rowCumulative[activeIdx];
+    const rowDur = rowDurations[activeIdx] || 0;
+    const pct = rowDur > 0 ? Math.min(100, (rowElapsed / rowDur) * 100) : 0;
+    const remaining = rowDur - rowElapsed;
+    renderFocusProgress(pct, remaining, rowDur);
+  }
+}
+
 // ── Font Size ───────────────────────────────────────────────────────────────
 function applyFontSize(val) {
   val = parseFloat(val);
@@ -2782,6 +2870,10 @@ document.getElementById('btnStart').disabled = true;
 
 // Apply dark mode preference
 applyDarkMode(localStorage.getItem(DARK_KEY) === '1');
+
+// Apply subtask progress preference (default OFF)
+subtaskProgressOn = localStorage.getItem(SUBTASK_PROGRESS_KEY) === '1';
+syncSubtaskProgressButton();
 
 // Apply device (saved override or auto-detected)
 const savedDevice = localStorage.getItem(DEVICE_KEY) || detectDevice();
