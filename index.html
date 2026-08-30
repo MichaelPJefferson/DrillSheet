@@ -1478,6 +1478,7 @@ function loadSelected() {
     document.getElementById('emptyState').style.display = '';
     document.getElementById('sheetView').style.display = 'none';
     document.getElementById('focusView').style.display = 'none';
+    timerStop();
     document.getElementById('btnStart').disabled = true;
     document.getElementById('btnStop').style.display     = 'none';
     document.getElementById('btnSkipPrev').style.display = 'none';
@@ -1526,6 +1527,7 @@ function deleteSelected() {
   document.getElementById('cloneBtn').style.display = 'none';
   document.getElementById('modeBtn').style.display = 'none';
   focusActive = false; focusGroups = [];
+  timerStop();
   document.getElementById('btnStart').disabled = true;
   document.getElementById('btnStop').style.display     = 'none';
   document.getElementById('btnSkipPrev').style.display = 'none';
@@ -1906,6 +1908,7 @@ let timerState    = 'stopped'; // 'stopped' | 'running' | 'paused'
 let timerElapsed  = 0;         // ms accumulated before current run
 let timerTickAt   = null;      // Date.now() when current run started
 let timerInterval = null;
+let countdownTimer = null;   // pending 3-2-1 countdown, if any
 let rowDurations  = [];        // seconds per group row
 let rowCumulative = [];        // cumulative start-second for each row
 let totalDurSec   = 0;
@@ -1952,10 +1955,27 @@ function scrollToPlaybar() {
   window.scrollTo({ top, behavior: 'smooth' });
 }
 
-function timerStart() {
-  if (timerState === 'running') return;
-  document.getElementById('btnStart').style.display = 'none';
-  scrollToPlaybar();
+// ── Transport state ─────────────────────────────────────────────────────────
+// A countdown is a fourth, transient state: not stopped, not yet running.
+// Every transport control is rendered from timerState + countdownActive() so
+// the buttons can never disagree with the timer.
+function countdownActive() { return countdownTimer !== null; }
+
+function cancelCountdown() {
+  if (countdownTimer === null) return;
+  clearInterval(countdownTimer);
+  countdownTimer = null;
+  releaseWakeLock(); // primed on the click that started this countdown
+  const overlay = document.getElementById('countdownOverlay');
+  overlay.style.display = 'none';
+  overlay.classList.remove('pop');
+  syncTransport();
+}
+
+// Runs the 3-2-1 overlay, then onDone(). Cancels any countdown already pending
+// so a double-tap can never leave two of them racing to start the timer.
+function runCountdown(onDone) {
+  cancelCountdown();
   let count = 3;
   const overlay = document.getElementById('countdownOverlay');
   const showCount = () => {
@@ -1966,26 +1986,44 @@ function timerStart() {
     overlay.style.display = 'flex';
   };
   showCount();
-  const cd = setInterval(() => {
+  countdownTimer = setInterval(() => {
     count--;
-    if (count > 0) {
-      showCount();
-    } else {
-      clearInterval(cd);
-      overlay.style.display = 'none';
-      overlay.classList.remove('pop');
-      timerState  = 'running';
-      timerTickAt = Date.now();
-      document.getElementById('btnPause').style.display    = '';
-      document.getElementById('btnResume').style.display   = 'none';
-      document.getElementById('btnStop').style.display     = '';
-      document.getElementById('btnSkipPrev').style.display = '';
-      document.getElementById('btnSkipNext').style.display = '';
-      timerInterval = setInterval(timerTick, 100);
-      acquireWakeLock();
-      syncFocusCardAction();
-    }
+    if (count > 0) { showCount(); return; }
+    clearInterval(countdownTimer);
+    countdownTimer = null;
+    overlay.style.display = 'none';
+    overlay.classList.remove('pop');
+    onDone();
   }, 1000);
+  syncTransport();
+}
+
+// Single source of truth for the play/pause/resume buttons in both the
+// playback bar and the focus card.
+function syncTransport() {
+  const counting = countdownActive();
+  const show = (id, on) => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = on ? '' : 'none';
+  };
+  show('btnStart',  timerState === 'stopped' && !counting);
+  show('btnPause',  timerState === 'running');
+  show('btnResume', timerState === 'paused'  && !counting);
+  syncFocusCardAction();
+}
+
+function timerStart() {
+  if (timerState === 'running' || countdownActive()) return;
+  // Taken here, inside the click, so the iOS video fallback keeps its user
+  // activation — not after the countdown, where play() would be blocked.
+  acquireWakeLock();
+  scrollToPlaybar();
+  runCountdown(() => {
+    timerState  = 'running';
+    timerTickAt = Date.now();
+    syncTransport();
+    timerInterval = setInterval(timerTick, 100);
+  });
 }
 
 function timerPause() {
@@ -1993,47 +2031,28 @@ function timerPause() {
   timerElapsed += Date.now() - timerTickAt;
   timerState = 'paused';
   clearInterval(timerInterval);
-  document.getElementById('btnPause').style.display  = 'none';
-  document.getElementById('btnResume').style.display = '';
+  timerInterval = null;
+  syncTransport();
   updateTRW(totalDurSec - timerElapsed / 1000, 'paused');
-  syncFocusCardAction();
 }
 
 function timerResume() {
-  if (timerState !== 'paused') return;
-  document.getElementById('btnResume').style.display = 'none';
-  let count = 3;
-  const overlay = document.getElementById('countdownOverlay');
-  const showCount = () => {
-    overlay.textContent = count;
-    overlay.classList.remove('pop');
-    void overlay.offsetWidth;
-    overlay.classList.add('pop');
-    overlay.style.display = 'flex';
-  };
-  showCount();
-  const cd = setInterval(() => {
-    count--;
-    if (count > 0) {
-      showCount();
-    } else {
-      clearInterval(cd);
-      overlay.style.display = 'none';
-      overlay.classList.remove('pop');
-      timerState  = 'running';
-      timerTickAt = Date.now();
-      document.getElementById('btnPause').style.display = '';
-      timerInterval = setInterval(timerTick, 100);
-      acquireWakeLock();
-      syncFocusCardAction();
-    }
-  }, 1000);
+  if (timerState !== 'paused' || countdownActive()) return;
+  acquireWakeLock(); // inside the click — see timerStart()
+  runCountdown(() => {
+    timerState  = 'running';
+    timerTickAt = Date.now();
+    syncTransport();
+    timerInterval = setInterval(timerTick, 100);
+  });
 }
 
 function confirmStop() {
+  // A pending countdown is cancelled outright — no confirmation needed,
+  // nothing has started yet.
+  if (countdownActive()) { cancelCountdown(); return; }
+
   const btn = document.getElementById('btnStop');
-  const savedHTML  = btn.innerHTML;
-  const savedClass = btn.className;
   btn.innerHTML = 'Sure?&nbsp;';
   btn.onclick = null;
   btn.style.cursor = 'default';
@@ -2050,34 +2069,35 @@ function confirmStop() {
   no.style.cssText = 'padding:0.2rem 0.55rem;font-size:0.85rem;';
   no.onclick = e => {
     e.stopPropagation();
-    btn.innerHTML  = savedHTML;
-    btn.className  = savedClass;
-    btn.style.cursor = '';
-    btn.onclick = confirmStop;
+    resetStopButton();
   };
 
   btn.appendChild(yes);
   btn.appendChild(no);
 }
 
+function resetStopButton() {
+  const btn = document.getElementById('btnStop');
+  btn.innerHTML = '■ <span class="btn-label">Stop</span>';
+  btn.className = 'btn btn-stop';
+  btn.style.cursor = '';
+  btn.onclick = confirmStop;
+}
+
 function timerStop() {
+  cancelCountdown();
   clearInterval(timerInterval);
+  timerInterval = null;
   timerState   = 'stopped';
   timerElapsed = 0;
-  document.getElementById('btnStart').style.display    = '';
-  document.getElementById('btnPause').style.display    = 'none';
-  document.getElementById('btnResume').style.display   = 'none';
+  timerTickAt  = null;
   document.getElementById('pbElapsed').textContent   = '0:00';
   document.getElementById('pbRemaining').textContent = fmtSec(totalDurSec);
   updateTRW(totalDurSec, 'stopped');
   clearRowHighlights();
   releaseWakeLock();
-  syncFocusCardAction();
-  const btnStop = document.getElementById('btnStop');
-  btnStop.innerHTML = '■ <span class="btn-label">Stop</span>';
-  btnStop.className = 'btn btn-stop';
-  btnStop.style.cursor = '';
-  btnStop.onclick = confirmStop;
+  resetStopButton();
+  syncTransport();
 }
 
 function timerSkip(dir) {
@@ -2542,12 +2562,16 @@ function renderFocusProgress(pct, remainingSec, songDur) {
 function syncFocusCardAction() {
   const el = document.getElementById('focusCardAction');
   if (!el) return;
-  if (timerState === 'stopped') {
-    el.innerHTML = '<button class="btn btn-play" onclick="timerStart()">▶ Start</button>';
+  if (countdownActive()) {
+    // Countdown pending: no actionable play control, or a second tap would
+    // start a competing countdown.
+    el.innerHTML = '<button class="btn btn-play" disabled style="opacity:0.55;cursor:default">▶ Starting…</button>';
   } else if (timerState === 'paused') {
     el.innerHTML = '<button class="btn btn-play" onclick="timerResume()">▶ Resume</button>';
   } else if (timerState === 'running') {
     el.innerHTML = '<button class="btn btn-pause" onclick="timerPause()">⏸ Pause</button>';
+  } else {
+    el.innerHTML = '<button class="btn btn-play" onclick="timerStart()">▶ Start</button>';
   }
 }
 
@@ -2794,20 +2818,43 @@ function cycleDevice() {
 // ── Wake Lock ──────────────────────────────────────────────────────────────
 // Uses NoSleep.js: Wake Lock API where available, looping video fallback for
 // iOS Safari (works on file:// and plain HTTP where Wake Lock API is blocked).
+//
+// IMPORTANT: the video fallback calls video.play(), which browsers only allow
+// while a user gesture is being handled. acquireWakeLock() must therefore be
+// reached SYNCHRONOUSLY from the Start/Resume click — never from a timer
+// callback (e.g. after the 3-2-1 countdown), or play() rejects with
+// NotAllowedError and the screen sleeps mid-workout.
 const noSleep = typeof NoSleep !== 'undefined' ? new NoSleep() : null;
+let wakeLockWanted = false;
 
 async function acquireWakeLock() {
-  if (!noSleep) return;
-  try { await noSleep.enable(); } catch (e) { /* user gesture required or permission denied */ }
+  wakeLockWanted = true;
+  if (!noSleep || noSleep.isEnabled) return;
+  // enable() is invoked synchronously here so the caller's user activation
+  // still applies; only the result is awaited.
+  try {
+    await noSleep.enable();
+  } catch (e) {
+    console.warn('Screen keepalive unavailable:', e && e.name ? e.name : e);
+  }
 }
 
 function releaseWakeLock() {
-  if (noSleep) noSleep.disable();
+  wakeLockWanted = false;
+  if (noSleep && noSleep.isEnabled) noSleep.disable();
 }
 
-// Re-acquire if tab becomes visible again while timer is running
+// The browser drops the wake lock (and pauses the fallback video) whenever the
+// page is hidden, so re-take it on return.
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && timerState === 'running') acquireWakeLock();
+  if (document.visibilityState !== 'visible' || !wakeLockWanted) return;
+  // Native path: NoSleep re-requests the lock itself on visibilitychange, so
+  // requesting again here would leak the one it just took.
+  if ('wakeLock' in navigator) return;
+  // Fallback path: the video was paused while hidden — clear the stale enabled
+  // flag so enable() actually calls play() again.
+  if (noSleep) noSleep.disable();
+  acquireWakeLock();
 });
 
 // ── Dark Mode ────────────────────────────────────────────────────────────────
