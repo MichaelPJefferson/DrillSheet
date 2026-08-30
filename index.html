@@ -583,6 +583,69 @@
     }
     .drop-sub { font-size: 0.82rem; color: var(--text-secondary); }
 
+    /* ── Spotify panel ── */
+    .spot-overlay {
+      position: fixed; inset: 0; z-index: 200;
+      background: rgba(0,0,0,0.55);
+      display: flex; align-items: center; justify-content: center;
+      padding: 1rem;
+    }
+    .spot-modal {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+      width: min(620px, 100%);
+      max-height: 90vh; overflow-y: auto;
+      padding: 1.25rem 1.4rem 1.4rem;
+    }
+    .spot-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; }
+    .spot-head h2 {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1.5rem; font-weight: 700; letter-spacing: 0.04em;
+      text-transform: uppercase; color: var(--text-primary);
+    }
+    .spot-sect { padding: 0.9rem 0; border-top: 1px solid var(--border); }
+    .spot-label {
+      font-size: 0.78rem; font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--text-dim); margin-bottom: 0.5rem;
+    }
+    .spot-label b { color: var(--accent-primary); text-transform: none; letter-spacing: 0; }
+    .spot-row { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+    .spot-row select {
+      flex: 1 1 240px; min-width: 0;
+      padding: 0.45rem 0.6rem;
+      border: 1px solid var(--border); border-radius: 6px;
+      background: var(--bg-tertiary); color: var(--text-primary);
+      font-size: 0.9rem;
+    }
+    .spot-row input[type=text] {
+      flex: 1 1 240px; min-width: 0;
+      padding: 0.45rem 0.6rem;
+      border: 1px solid var(--border); border-radius: 6px;
+      background: var(--bg-tertiary); color: var(--text-primary);
+      font-family: 'Share Tech Mono', monospace; font-size: 0.85rem;
+    }
+    .spot-hint { font-size: 0.82rem; color: var(--text-secondary); margin-top: 0.5rem; line-height: 1.5; }
+    .spot-hint code {
+      display: inline-block; margin: 0.25rem 0;
+      background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 4px;
+      padding: 0.15rem 0.4rem; font-family: 'Share Tech Mono', monospace;
+      font-size: 0.82rem; word-break: break-all; color: var(--accent-primary);
+    }
+    .spot-status {
+      margin-top: 0.6rem; min-height: 1.2em;
+      font-family: 'Share Tech Mono', monospace; font-size: 0.82rem; color: var(--text-secondary);
+    }
+    #spotCodeOut {
+      width: 100%; margin-top: 0.5rem; height: 4.5rem; resize: vertical;
+      padding: 0.45rem 0.6rem;
+      border: 1px solid var(--border); border-radius: 6px;
+      background: var(--bg-tertiary); color: var(--text-primary);
+      font-family: 'Share Tech Mono', monospace; font-size: 0.78rem;
+      word-break: break-all;
+    }
+
     /* ── Playback bar ── */
     .playback-bar {
       display: flex;
@@ -1126,6 +1189,7 @@
       </button>
       <button class="btn btn-mode" onclick="exportBundle()" title="Download all sheets as a bundle file">⬇ Export Bundle</button>
       <button class="btn btn-mode" onclick="document.getElementById('bundleInput').click()" title="Load a previously exported bundle">⬆ Import Bundle</button>
+      <button class="btn btn-mode" id="spotifyBtn" onclick="openSpotifyPanel()" title="Link a Spotify playlist to this sheet">♫ Spotify</button>
       <button class="btn btn-mode" id="subtaskProgressBtn" onclick="toggleSubtaskProgress()" title="Toggle per-subtask progress highlighting">◧ Subtask Progress Off</button>
       <input type="file" id="bundleInput" accept=".json" style="display:none" onchange="importBundle(event)">
     </div>
@@ -1142,6 +1206,99 @@
       <button class="fs-reset" onclick="resetFontSize()" title="Reset to default">↺</button>
     </div>
     <input type="file" id="fileInput" accept=".csv" multiple onchange="handleUpload(event)">
+  </div>
+
+  <!-- Spotify Connect panel -->
+  <div class="spot-overlay" id="spotifyPanel" style="display:none" onclick="if(event.target===this)closeSpotifyPanel()">
+    <div class="spot-modal">
+      <div class="spot-head">
+        <h2>Spotify Connect</h2>
+        <button class="btn btn-mode" onclick="closeSpotifyPanel()">✕</button>
+      </div>
+
+      <div class="spot-sect">
+        <div class="spot-label">Playlist for this sheet <b id="spotSheetName"></b></div>
+        <div id="spotSheetRow" style="display:none">
+          <div class="spot-row">
+            <input type="text" id="spotPlaylist" placeholder="Paste a Spotify playlist link or URI">
+            <button class="btn btn-primary" onclick="saveSheetPlaylist()">Save</button>
+          </div>
+          <div class="spot-hint">
+            Track order must match the sheet's song order — drill row 1 plays track 1.
+            Leave blank to unlink. A matching <code>Playlists/&lt;name&gt;.spotify</code> file is picked up automatically.
+          </div>
+        </div>
+        <div class="spot-hint" id="spotNoSheet" style="display:none">Load a drill sheet to link a playlist to it.</div>
+        <div class="spot-hint" id="spotKnown"></div>
+      </div>
+
+      <div class="spot-sect">
+        <div class="spot-label">Connection <span id="spotConnState"></span></div>
+        <div class="spot-row">
+          <select id="spotConn" onchange="spotifySwitchConnection()">
+            <option value="">— No connection —</option>
+          </select>
+          <button class="btn btn-danger" onclick="spotifyRemoveConnection()">Remove</button>
+        </div>
+        <div class="spot-hint">
+          Each person gets their own named connection with its own playback device.
+          Switch here before a class — Start follows whoever is selected.
+        </div>
+        <div class="spot-row" style="margin-top:0.6rem">
+          <input type="text" id="spotClientId" placeholder="Spotify app Client ID">
+          <button class="btn btn-mode" onclick="saveSpotifyClientId()">Save ID</button>
+        </div>
+        <div class="spot-row" style="margin-top:0.5rem">
+          <input type="text" id="spotNewName" placeholder="Name for a new connection">
+          <button class="btn btn-primary" id="spotConnectBtn" onclick="spotifyConnect()">Connect</button>
+          <button class="btn btn-danger" id="spotDisconnectBtn" style="display:none" onclick="spotifyDisconnect()">Sign out</button>
+        </div>
+        <div class="spot-hint">
+          Create an app at <b>developer.spotify.com/dashboard</b>, then add this exact redirect URI to it:
+          <code id="spotRedirect"></code>
+          Playback control requires <b>Spotify Premium</b>, and Spotify must be open on some device — this page
+          steers that device, it does not play audio itself.
+        </div>
+        <div class="spot-status" id="spotStatus"></div>
+        <div class="spot-status" id="spotEnv"></div>
+      </div>
+
+      <div class="spot-sect">
+        <div class="spot-label">Playback device</div>
+        <div class="spot-row">
+          <select id="spotDevice" onchange="spotifySaveDevice()">
+            <option value="">Whatever is currently active</option>
+          </select>
+          <button class="btn btn-mode" onclick="spotifyLoadDevices()">↺ Refresh</button>
+        </div>
+        <div class="spot-hint">
+          Pick the device the drill sheet should steer, or it follows whichever Spotify
+          was last active — often the wrong one. A device only appears here while its
+          Spotify app is running, so open Spotify there first, then Refresh.
+        </div>
+      </div>
+
+      <div class="spot-sect">
+        <div class="spot-label">Transfer a connection</div>
+        <div class="spot-hint">
+          For a browser too old to show Spotify's login page. Connect on a modern browser
+          pointed at <b>this same address</b>, copy the code it produces, and paste it here.
+        </div>
+        <div class="spot-row" style="margin-top:0.5rem">
+          <button class="btn btn-mode" id="spotCodeBtn" onclick="spotifyExportCode()">Copy code from this device</button>
+        </div>
+        <textarea id="spotCodeOut" readonly style="display:none"></textarea>
+        <div class="spot-row" style="margin-top:0.5rem">
+          <input type="text" id="spotCodeName" placeholder="Name (e.g. Sarah)">
+          <input type="text" id="spotCodeIn" placeholder="Paste a connection code">
+          <button class="btn btn-primary" onclick="spotifyImportCode()">Add connection</button>
+        </div>
+        <div class="spot-hint">
+          The code contains a login token for your account — treat it like a password.
+          Send it to yourself privately and don't publish it with the bundle.
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Playback bar (table mode only) -->
@@ -1486,6 +1643,8 @@ function loadSelected() {
     delBtn.style.display = 'none';
     cloneBtn.style.display = 'none';
     modeBtn.style.display = 'none';
+    currentFile = null;
+    syncSpotifyUI();
     setMgmtVisible(true);
     return;
   }
@@ -1506,6 +1665,9 @@ function loadSelected() {
   const groups = groupRows(parseCSV(csv));
   focusGroups = groups;
   renderSheet(groups, name);
+  spotifyReset();
+  seedPlaylistFromSidecar(name);
+  syncSpotifyUI();
   const dev = localStorage.getItem(DEVICE_KEY) || detectDevice();
   if ((dev === 'phone' || dev === 'tablet') && !focusActive) toggleFocusMode();
 }
@@ -1516,7 +1678,9 @@ function deleteSelected() {
   const data = getAll();
   delete data[name];
   saveAll(data);
+  setPlaylistFor(name, '');   // don't leave an orphaned playlist link behind
   clearDirty(name);
+  currentFile = null;
   document.title = 'Drill Sheet';
   document.getElementById('fileSelect').value = '';
   refreshDropdown(null);
@@ -1532,6 +1696,7 @@ function deleteSelected() {
   document.getElementById('btnStop').style.display     = 'none';
   document.getElementById('btnSkipPrev').style.display = 'none';
   document.getElementById('btnSkipNext').style.display = 'none';
+  syncSpotifyUI();
   setMgmtVisible(true);
 }
 
@@ -1549,6 +1714,9 @@ function cloneSelected() {
   if (data[key]) { alert(`A sheet named "${key}" already exists.`); return; }
   data[key] = csv;
   saveAll(data);
+  // A clone plays the same music as its original.
+  const srcList = playlistFor(name);
+  if (srcList) setPlaylistFor(key, srcList);
   markDirty(key);
   refreshDropdown(key);
 }
@@ -2023,6 +2191,7 @@ function timerStart() {
     timerTickAt = Date.now();
     syncTransport();
     timerInterval = setInterval(timerTick, 100);
+    spotifyFollowTimer();
   });
 }
 
@@ -2034,6 +2203,7 @@ function timerPause() {
   timerInterval = null;
   syncTransport();
   updateTRW(totalDurSec - timerElapsed / 1000, 'paused');
+  spotifyPauseMusic();
 }
 
 function timerResume() {
@@ -2044,6 +2214,7 @@ function timerResume() {
     timerTickAt = Date.now();
     syncTransport();
     timerInterval = setInterval(timerTick, 100);
+    spotifyFollowTimer();
   });
 }
 
@@ -2098,6 +2269,10 @@ function timerStop() {
   releaseWakeLock();
   resetStopButton();
   syncTransport();
+  // Stop mirrors the timer: pause the music, and clear the remembered track so
+  // the next Start begins the class from track 1 again (timerElapsed is 0 now).
+  spotifyPauseMusic();
+  spotifyReset();
 }
 
 function timerSkip(dir) {
@@ -2189,6 +2364,7 @@ function timerTick() {
   }
 
   const activeIdx = getActiveIdx(elapsed);
+  spotifySyncRow(activeIdx);   // no-op unless the drill row actually changed
   const rowElapsed = elapsed - rowCumulative[activeIdx];
   const rowDur     = rowDurations[activeIdx];
   const pct        = rowDur > 0 ? Math.min(100, (rowElapsed / rowDur) * 100) : 0;
@@ -2705,7 +2881,11 @@ document.addEventListener('touchend', e => {
 function exportBundle() {
   const sheets = getAll();
   if (!Object.keys(sheets).length) { alert('No sheets to export.'); return; }
-  const bundle = { v: 1, exported: new Date().toISOString(), sheets };
+  const bundle = { v: 2, exported: new Date().toISOString(), sheets, playlists: getPlaylists() };
+  // A PKCE client ID is public by design (it travels in the authorize URL), so
+  // publishing it saves re-typing it on every device. Tokens are never exported.
+  const cid = spotCfg().clientId;
+  if (cid) bundle.spotifyClientId = cid;
   const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -2735,8 +2915,23 @@ function importBundle(e) {
         if (typeof csv === 'string') { data[name] = csv; count++; }
       });
       saveAll(data);
+      // v2 bundles carry the per-sheet Spotify playlists alongside the CSVs.
+      let listCount = 0;
+      if (bundle.playlists && typeof bundle.playlists === 'object') {
+        const lists = getPlaylists();
+        Object.entries(bundle.playlists).forEach(([name, uri]) => {
+          const norm = normalizePlaylist(uri);
+          if (norm) { lists[name] = norm; listCount++; }
+        });
+        savePlaylists(lists);
+      }
+      if (bundle.spotifyClientId && !spotCfg().clientId) {
+        const c = spotCfg(); c.clientId = bundle.spotifyClientId; saveSpotCfg(c);
+      }
+      syncSpotifyUI();
       refreshDropdown(null);
-      alert(`Imported ${count} sheet${count !== 1 ? 's' : ''}.`);
+      alert(`Imported ${count} sheet${count !== 1 ? 's' : ''}`
+        + (listCount ? ` and ${listCount} playlist${listCount !== 1 ? 's' : ''}` : '') + '.');
     } catch {
       alert('Invalid bundle file.');
     }
@@ -2765,6 +2960,23 @@ async function fetchServerSheets() {
       saveAll(data);
       refreshDropdown(null);
     }
+    // Playlists published in sheets.json seed any sheet that has none locally,
+    // without overwriting a link you set yourself.
+    if (bundle.playlists && typeof bundle.playlists === 'object') {
+      const lists = getPlaylists();
+      let added = 0;
+      Object.entries(bundle.playlists).forEach(([name, uri]) => {
+        if (lists[name]) return;
+        const norm = normalizePlaylist(uri);
+        if (norm) { lists[name] = norm; added++; }
+      });
+      if (added) { savePlaylists(lists); }
+    }
+    // Adopt a published client ID only if this device has none of its own.
+    if (bundle.spotifyClientId && !spotCfg().clientId) {
+      const c = spotCfg(); c.clientId = bundle.spotifyClientId; saveSpotCfg(c);
+    }
+    syncSpotifyUI();
     if (count > 0 || skipped > 0) {
       const badge = document.getElementById('serverBadge');
       badge.style.display = '';
@@ -2912,6 +3124,590 @@ function resetFontSize() {
   applyFontSize(FS_DEFAULTS[device] || 1.0);
 }
 
+// ── Spotify Connect ────────────────────────────────────────────────────────
+// Remote-controls the user's existing Spotify device (phone / desktop / speaker)
+// via the Web API. Requires Spotify Premium and an HTTPS (or 127.0.0.1) origin —
+// the OAuth redirect URI cannot be a file:// URL.
+//
+// Row-to-track mapping: groupRows() emits exactly one group per song row, so
+// group index N is playlist track position N.
+const SPOT_CFG_KEY  = 'drillsheet_spotify_cfg';
+const SPOT_TOK_KEY  = 'drillsheet_spotify_tok';
+const SPOT_LIST_KEY = 'drillsheet_playlists';
+const SPOT_DEV_KEY   = 'drillsheet_spotify_dev';    // legacy, migrated away
+const SPOT_ACCTS_KEY = 'drillsheet_spotify_accounts';
+const SPOT_ACTIVE_KEY = 'drillsheet_spotify_active';
+const SPOT_SCOPES   = 'user-read-playback-state user-modify-playback-state';
+
+let spotifyLastIdx = -1;   // last track position we asked Spotify to play
+let spotifyBusy    = false;
+
+function spotCfg()      { try { return JSON.parse(localStorage.getItem(SPOT_CFG_KEY) || '{}'); } catch { return {}; } }
+function saveSpotCfg(c) { localStorage.setItem(SPOT_CFG_KEY, JSON.stringify(c)); }
+
+// ── Named connections ──────────────────────────────────────────────────────
+// One shared iPad drives two accounts, so tokens are stored per named
+// connection rather than singly. The chosen playback device lives INSIDE each
+// connection: Spotify devices belong to an account, and a device id from one
+// account is meaningless to the other.
+function getAccounts()   { try { return JSON.parse(localStorage.getItem(SPOT_ACCTS_KEY) || '{}'); } catch { return {}; } }
+function saveAccounts(a) { localStorage.setItem(SPOT_ACCTS_KEY, JSON.stringify(a)); }
+function activeName()    { return localStorage.getItem(SPOT_ACTIVE_KEY) || ''; }
+function setActiveName(n) {
+  n ? localStorage.setItem(SPOT_ACTIVE_KEY, n) : localStorage.removeItem(SPOT_ACTIVE_KEY);
+  spotifyReset();
+}
+function activeAccount() { const a = getAccounts(); const n = activeName(); return (n && a[n]) || null; }
+
+function updateActive(patch) {
+  const n = activeName();
+  if (!n) return;
+  const all = getAccounts();
+  all[n] = Object.assign({}, all[n] || {}, patch);
+  saveAccounts(all);
+}
+
+// Carries a pre-Connections single token into a named connection so an
+// already-set-up device keeps working after this upgrade.
+function migrateLegacyConnection() {
+  if (Object.keys(getAccounts()).length) return;
+  let legacy = null;
+  try { legacy = JSON.parse(localStorage.getItem(SPOT_TOK_KEY) || 'null'); } catch {}
+  if (!legacy || !legacy.refresh_token) return;
+  const name = 'My Spotify';
+  saveAccounts({ [name]: {
+    access_token:  legacy.access_token,
+    refresh_token: legacy.refresh_token,
+    expires_at:    legacy.expires_at,
+    device:        localStorage.getItem(SPOT_DEV_KEY) || ''
+  } });
+  localStorage.setItem(SPOT_ACTIVE_KEY, name);
+  localStorage.removeItem(SPOT_TOK_KEY);
+  localStorage.removeItem(SPOT_DEV_KEY);
+}
+
+// The rest of the Spotify code reads and writes the ACTIVE connection through
+// these two, so nothing else had to change when connections became plural.
+function spotTok() {
+  const a = activeAccount();
+  return (a && a.refresh_token) ? a : null;
+}
+function saveSpotTok(t) {
+  if (!activeName()) return;
+  if (t) updateActive({ access_token: t.access_token, refresh_token: t.refresh_token, expires_at: t.expires_at });
+  else   updateActive({ access_token: '', refresh_token: '', expires_at: 0 });
+}
+
+// Which Spotify device to steer. Empty means "whatever is currently active",
+// which is how Spotify behaves when no device_id is supplied.
+function spotDevice()       { const a = activeAccount(); return (a && a.device) || ''; }
+function saveSpotDevice(id) { updateActive({ device: id || '' }); }
+function spotDeviceQuery()  { const d = spotDevice(); return d ? '?device_id=' + encodeURIComponent(d) : ''; }
+
+function getPlaylists()     { try { return JSON.parse(localStorage.getItem(SPOT_LIST_KEY) || '{}'); } catch { return {}; } }
+function savePlaylists(p)   { localStorage.setItem(SPOT_LIST_KEY, JSON.stringify(p)); }
+function playlistFor(sheet) { return sheet ? (getPlaylists()[sheet] || '') : ''; }
+function setPlaylistFor(sheet, uri) {
+  const p = getPlaylists();
+  if (uri) p[sheet] = uri; else delete p[sheet];
+  savePlaylists(p);
+}
+
+// Accepts a full URL (normal or /embed/), a spotify: URI, or a bare ID.
+function normalizePlaylist(input) {
+  const s = (input || '').trim();
+  if (!s) return '';
+  let m = s.match(/^spotify:playlist:([A-Za-z0-9]+)$/);
+  if (m) return 'spotify:playlist:' + m[1];
+  m = s.match(/open\.spotify\.com\/(?:embed\/)?playlist\/([A-Za-z0-9]+)/);
+  if (m) return 'spotify:playlist:' + m[1];
+  if (/^[A-Za-z0-9]{16,}$/.test(s)) return 'spotify:playlist:' + s;
+  return '';
+}
+
+function spotifyRedirectUri() { return location.origin + location.pathname; }
+function spotifyConnected()   { return !!spotTok(); }
+// Only drive Spotify when we are connected AND this sheet has a playlist.
+function spotifyActive()      { return spotifyConnected() && !!playlistFor(currentFile); }
+
+// ── OAuth (Authorization Code + PKCE; no client secret in the page) ─────────
+function b64url(buf) {
+  return btoa(String.fromCharCode.apply(null, new Uint8Array(buf)))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+// Why this reports so much: it is wired straight to onclick, so an unhandled
+// rejection here would fail completely silently — no alert, no navigation.
+async function spotifyConnect() {
+  try {
+    const clientId = spotCfg().clientId;
+    if (!clientId) { alert('Enter your Spotify Client ID and press Save ID first.'); return; }
+    if (!claimConnectionName(document.getElementById('spotNewName').value)) return;
+
+    // PKCE needs SHA-256. Browsers only expose crypto.subtle in a secure
+    // context, so on file:// or plain http:// it is simply undefined.
+    if (!window.isSecureContext || !crypto.subtle) {
+      const where = location.protocol === 'file:' ? 'a file:// URL' : location.protocol + '//' + location.host;
+      alert('Spotify login needs a secure page.\n\nThis page is served from ' + where
+          + ', where the browser disables the crypto needed to log in.\n\n'
+          + 'Serve the drill sheet over HTTPS (or http://127.0.0.1) and try again.');
+      spotifyNote('Login unavailable: page is not a secure context.');
+      return;
+    }
+
+    spotifyNote('Redirecting to Spotify…');
+    const verifier  = b64url(crypto.getRandomValues(new Uint8Array(64)));
+    const digest    = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+    const challenge = b64url(digest);
+    const state     = b64url(crypto.getRandomValues(new Uint8Array(16)));
+    sessionStorage.setItem('drillsheet_pkce', JSON.stringify({ verifier: verifier, state: state }));
+
+    const q = new URLSearchParams({
+      client_id: clientId,
+      response_type: 'code',
+      redirect_uri: spotifyRedirectUri(),
+      code_challenge_method: 'S256',
+      code_challenge: challenge,
+      state: state,
+      scope: SPOT_SCOPES
+    });
+    location.href = 'https://accounts.spotify.com/authorize?' + q;
+  } catch (e) {
+    spotifyNote('Login failed: ' + (e && e.message ? e.message : e));
+    alert('Could not start Spotify login: ' + (e && e.message ? e.message : e));
+  }
+}
+
+// Handles the ?code=... hand-back after login. Runs once at startup.
+async function spotifyHandleRedirect() {
+  const params = new URLSearchParams(location.search);
+  const code = params.get('code');
+  const err  = params.get('error');
+  if (!code && !err) return;
+
+  const clean = () => history.replaceState({}, '', spotifyRedirectUri());
+  let pkce = null;
+  try { pkce = JSON.parse(sessionStorage.getItem('drillsheet_pkce') || 'null'); } catch {}
+  sessionStorage.removeItem('drillsheet_pkce');
+
+  if (err) { clean(); alert('Spotify login failed: ' + err); return; }
+  if (!pkce || pkce.state !== params.get('state')) {
+    clean(); alert('Spotify login failed: state mismatch.'); return;
+  }
+  try {
+    const tok = await spotifyTokenRequest({
+      grant_type: 'authorization_code',
+      code: code,
+      redirect_uri: spotifyRedirectUri(),
+      code_verifier: pkce.verifier
+    });
+    storeToken(tok);
+  } catch (e) {
+    alert('Spotify login failed: ' + e.message);
+  }
+  clean();
+}
+
+async function spotifyTokenRequest(body) {
+  const form = new URLSearchParams(body);
+  form.set('client_id', spotCfg().clientId);
+  const res = await fetch('https://accounts.spotify.com/api/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: form
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error_description || json.error || ('HTTP ' + res.status));
+  return json;
+}
+
+function storeToken(t) {
+  const prev = spotTok();
+  saveSpotTok({
+    access_token: t.access_token,
+    // PKCE refresh tokens rotate — keep the old one if this response omits it.
+    refresh_token: t.refresh_token || (prev && prev.refresh_token),
+    expires_at: Date.now() + (t.expires_in || 3600) * 1000 - 60000
+  });
+  syncSpotifyUI();
+}
+
+// ── Connection transfer ────────────────────────────────────────────────────
+// Spotify's login page refuses to render on older browsers, but using a token
+// needs nothing more than fetch. So authorise on a modern browser and carry the
+// refresh token across by hand; PKCE is only ever needed to obtain one.
+function spotifyExportCode() {
+  const t = spotTok();
+  if (!t || !t.refresh_token) { alert('Connect on this device first, then copy the code.'); return; }
+  const code = btoa(JSON.stringify({ c: spotCfg().clientId || '', r: t.refresh_token }));
+  const out = document.getElementById('spotCodeOut');
+  out.style.display = '';
+  out.value = code;
+  out.focus();
+  out.select();
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(code);
+    else document.execCommand('copy');
+    spotifyNote('Connection code copied — paste it on the other device.');
+  } catch {
+    spotifyNote('Select the code above and copy it manually.');
+  }
+}
+
+async function spotifyImportCode() {
+  const raw = document.getElementById('spotCodeIn').value.trim();
+  if (!raw) return;
+  let p = null;
+  try { p = JSON.parse(atob(raw)); } catch { p = null; }
+  if (!p || !p.r) { alert('That does not look like a connection code.'); return; }
+  if (!claimConnectionName(document.getElementById('spotCodeName').value)) return;
+  if (p.c) { const c = spotCfg(); c.clientId = p.c; saveSpotCfg(c); }
+  // expires_at 0 forces spotifyToken() down the refresh path, which both proves
+  // the token works and yields a usable access token.
+  saveSpotTok({ access_token: '', refresh_token: p.r, expires_at: 0 });
+  spotifyNote('Checking transferred connection…');
+  const tok = await spotifyToken();
+  if (tok) {
+    document.getElementById('spotCodeIn').value = '';
+    document.getElementById('spotCodeName').value = '';
+    spotifyNote('Connected as "' + activeName() + '" — transferred from another device.');
+    spotifyLoadDevices();
+  } else {
+    spotifyNote('Transfer failed. The code may be stale, or from a different Spotify app.');
+  }
+  syncSpotifyUI();
+}
+
+// Clears the active connection's tokens but KEEPS the entry, so a refresh
+// failure leaves a named connection to re-authorise rather than vanishing.
+function spotifyDisconnect() {
+  saveSpotTok(null);
+  spotifyLastIdx = -1;
+  syncSpotifyUI();
+}
+
+function spotifySwitchConnection() {
+  setActiveName(document.getElementById('spotConn').value);
+  syncSpotifyUI();
+  if (spotifyConnected()) spotifyLoadDevices();
+  const n = activeName();
+  spotifyNote(n ? 'Switched to "' + n + '".' : 'No connection selected.');
+}
+
+function spotifyRemoveConnection() {
+  const n = activeName();
+  if (!n) return;
+  if (!confirm('Remove the connection "' + n + '" from this device?\n\nThis only forgets it here; the Spotify account is untouched.')) return;
+  const all = getAccounts();
+  delete all[n];
+  saveAccounts(all);
+  setActiveName(Object.keys(all)[0] || '');
+  syncSpotifyUI();
+  spotifyNote('Removed "' + n + '".');
+}
+
+// Creates (or selects) a named connection and makes it active, so the token
+// that arrives next is filed under it.
+function claimConnectionName(name) {
+  const n = (name || '').trim();
+  if (!n) { alert('Give this connection a name first — e.g. a first name.'); return null; }
+  const all = getAccounts();
+  if (!all[n]) { all[n] = { access_token: '', refresh_token: '', expires_at: 0, device: '' }; saveAccounts(all); }
+  localStorage.setItem(SPOT_ACTIVE_KEY, n);
+  spotifyReset();
+  return n;
+}
+
+async function spotifyToken() {
+  const t = spotTok();
+  if (!t) return null;
+  if (Date.now() < t.expires_at) return t.access_token;
+  if (!t.refresh_token) { spotifyDisconnect(); return null; }
+  try {
+    const fresh = await spotifyTokenRequest({ grant_type: 'refresh_token', refresh_token: t.refresh_token });
+    storeToken(fresh);
+    return fresh.access_token;
+  } catch (e) {
+    console.warn('Spotify refresh failed:', e.message);
+    spotifyDisconnect();
+    return null;
+  }
+}
+
+// ── Web API calls ──────────────────────────────────────────────────────────
+async function spotifyApi(path, opts) {
+  opts = opts || {};
+  const token = await spotifyToken();
+  if (!token) return null;
+  const headers = { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' };
+  const res = await fetch('https://api.spotify.com/v1' + path, {
+    method: opts.method || 'GET',
+    body: opts.body,
+    headers: headers
+  });
+  if (res.status === 204 || res.status === 202) return {};
+  if (res.status === 401) { spotifyDisconnect(); return null; }
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const err = new Error((json.error && json.error.message) || ('HTTP ' + res.status));
+    err.status = res.status;
+    err.reason = json.error && json.error.reason;
+    throw err;
+  }
+  return json;
+}
+
+// The Web API steers an existing device; it makes no sound of its own. If
+// nothing is active, wake the most recently used device.
+async function ensureDevice() {
+  const d = await spotifyApi('/me/player/devices');
+  if (!d || !d.devices || !d.devices.length) return null;
+  const active = d.devices.find(x => x.is_active);
+  if (active) return active.id;
+  const target = d.devices[0];
+  await spotifyApi('/me/player', { method: 'PUT', body: JSON.stringify({ device_ids: [target.id], play: false }) });
+  return target.id;
+}
+
+function spotifySaveDevice() {
+  saveSpotDevice(document.getElementById('spotDevice').value);
+  const sel = document.getElementById('spotDevice');
+  spotifyNote(sel.value ? 'Targeting ' + sel.options[sel.selectedIndex].text : 'Following the active device.');
+}
+
+async function spotifyLoadDevices() {
+  const sel = document.getElementById('spotDevice');
+  if (!sel || !spotifyConnected()) return;
+  spotifyNote('Looking for devices…');
+  let list = [];
+  try {
+    const d = await spotifyApi('/me/player/devices');
+    list = (d && d.devices) || [];
+  } catch (e) {
+    spotifyNote('Could not list devices: ' + e.message);
+    return;
+  }
+  const chosen = spotDevice();
+  sel.innerHTML = '<option value="">Whatever is currently active</option>';
+  list.forEach(dev => {
+    const o = document.createElement('option');
+    o.value = dev.id;
+    o.textContent = dev.name + ' (' + dev.type + ')'
+      + (dev.is_active ? ' — active' : '')
+      + (dev.is_restricted ? ' — restricted' : '');
+    sel.appendChild(o);
+  });
+  // A device that has since been closed is no longer selectable; fall back to
+  // following the active one rather than silently targeting something gone.
+  if (chosen && !list.some(d => d.id === chosen)) {
+    saveSpotDevice('');
+    sel.value = '';
+    spotifyNote('Previously chosen device is offline — following the active device.');
+    return;
+  }
+  sel.value = chosen;
+  spotifyNote(list.length
+    ? list.length + ' device' + (list.length !== 1 ? 's' : '') + ' found.'
+    : 'No devices found — open Spotify on the device you want to use.');
+}
+
+function spotifyNote(msg) {
+  const el = document.getElementById('spotStatus');
+  if (el) el.textContent = msg;
+}
+
+async function spotifyPlayRow(idx, positionMs) {
+  if (!spotifyActive() || spotifyBusy) return;
+  const uri = playlistFor(currentFile);
+  spotifyBusy = true;
+  try {
+    const body = { context_uri: uri, offset: { position: Math.max(0, idx) } };
+    if (positionMs > 0) body.position_ms = Math.round(positionMs);
+    try {
+      // With a chosen device this both targets and wakes it; without one,
+      // Spotify sends the command to whatever is currently active.
+      await spotifyApi('/me/player/play' + spotDeviceQuery(), { method: 'PUT', body: JSON.stringify(body) });
+    } catch (e) {
+      // 404 NO_ACTIVE_DEVICE — nothing is listening yet; wake a device and retry once.
+      if (e.status !== 404) throw e;
+      const id = await ensureDevice();
+      if (!id) { spotifyNote('No Spotify device found — open Spotify on a device first.'); return; }
+      await spotifyApi('/me/player/play?device_id=' + id, { method: 'PUT', body: JSON.stringify(body) });
+    }
+    spotifyLastIdx = idx;
+    spotifyNote('Playing track ' + (idx + 1));
+  } catch (e) {
+    spotifyNote('Spotify: ' + e.message);
+    console.warn('Spotify play failed:', e);
+  } finally {
+    spotifyBusy = false;
+  }
+}
+
+async function spotifyPauseMusic() {
+  if (!spotifyActive()) return;
+  try {
+    await spotifyApi('/me/player/pause' + spotDeviceQuery(), { method: 'PUT' });
+    spotifyNote('Paused');
+  } catch (e) {
+    // 403 is the usual "already paused" response — not worth surfacing.
+    if (e.status !== 403) { spotifyNote('Spotify: ' + e.message); console.warn('Spotify pause failed:', e); }
+  }
+}
+
+// Where is the drill timer right now? Returns [rowIndex, msIntoRow].
+function currentRowPosition() {
+  const elapsed = (timerState === 'running' && timerTickAt !== null
+    ? timerElapsed + Date.now() - timerTickAt
+    : timerElapsed) / 1000;
+  const idx = getActiveIdx(elapsed);
+  return [idx, Math.max(0, (elapsed - rowCumulative[idx]) * 1000)];
+}
+
+// Start/resume music to match wherever the drill timer is.
+function spotifyFollowTimer() {
+  if (!spotifyActive()) return;
+  const pos = currentRowPosition();
+  spotifyLastIdx = pos[0];
+  spotifyPlayRow(pos[0], pos[1]);
+}
+
+// Called from timerTick — only fires when the drill row actually changes, so
+// each row boundary re-syncs the playlist and drift never accumulates.
+function spotifySyncRow(idx) {
+  if (!spotifyActive() || timerState !== 'running') return;
+  // Bail while a call is in flight WITHOUT claiming the index, so the next tick
+  // retries. Claiming it before a successful attempt would strand us on the
+  // wrong track; retrying after a failed one would spam the API every 100ms.
+  if (idx === spotifyLastIdx || spotifyBusy) return;
+  spotifyLastIdx = idx;
+  spotifyPlayRow(idx, 0);
+}
+
+function spotifyReset() { spotifyLastIdx = -1; }
+
+// ── Per-sheet playlist: sidecar seeding + UI ───────────────────────────────
+// Playlists/<sheet>.spotify files already exist in this project; adopt one the
+// first time a sheet without a saved playlist is opened.
+async function seedPlaylistFromSidecar(sheetName) {
+  if (location.protocol === 'file:') return;
+  if (playlistFor(sheetName)) return;
+  const base = sheetName.replace(/\.csv$/i, '');
+  try {
+    const res = await fetch('./Playlists/' + encodeURIComponent(base) + '.spotify', { cache: 'no-cache' });
+    if (!res.ok) return;
+    const text = await res.text();
+    const uri  = normalizePlaylist(text.trim());
+    if (uri) { setPlaylistFor(sheetName, uri); syncSpotifyUI(); }
+  } catch { /* no sidecar — fine */ }
+}
+
+function openSpotifyPanel() {
+  document.getElementById('spotifyPanel').style.display = 'flex';
+  syncSpotifyUI();
+  if (spotifyConnected()) spotifyLoadDevices();
+}
+
+function closeSpotifyPanel() {
+  document.getElementById('spotifyPanel').style.display = 'none';
+}
+
+function saveSpotifyClientId() {
+  const cfg = spotCfg();
+  cfg.clientId = document.getElementById('spotClientId').value.trim();
+  saveSpotCfg(cfg);
+  syncSpotifyUI();
+  spotifyNote('Client ID saved.');
+}
+
+function saveSheetPlaylist() {
+  if (!currentFile) { alert('Load a drill sheet first.'); return; }
+  const raw = document.getElementById('spotPlaylist').value;
+  if (!raw.trim()) { setPlaylistFor(currentFile, ''); spotifyReset(); syncSpotifyUI(); spotifyNote('Playlist cleared.'); return; }
+  const uri = normalizePlaylist(raw);
+  if (!uri) { alert('That does not look like a Spotify playlist link or URI.'); return; }
+  setPlaylistFor(currentFile, uri);
+  spotifyReset();
+  syncSpotifyUI();
+  spotifyNote('Playlist saved for this sheet.');
+}
+
+function syncSpotifyUI() {
+  const panel = document.getElementById('spotifyPanel');
+  if (!panel) return;
+  const cfg = spotCfg();
+  const idInput = document.getElementById('spotClientId');
+  if (document.activeElement !== idInput) idInput.value = cfg.clientId || '';
+  document.getElementById('spotRedirect').textContent = spotifyRedirectUri();
+
+  // Connection list — a named entry with no token reads as "needs sign-in"
+  // rather than disappearing, so it can be re-authorised in place.
+  const accts = getAccounts();
+  const connNames = Object.keys(accts).sort();
+  const connSel = document.getElementById('spotConn');
+  connSel.innerHTML = '<option value="">— No connection —</option>';
+  connNames.forEach(n => {
+    const o = document.createElement('option');
+    o.value = n;
+    o.textContent = n + (accts[n] && accts[n].refresh_token ? '' : ' (needs sign-in)');
+    connSel.appendChild(o);
+  });
+  connSel.value = activeName();
+
+  const conn = spotifyConnected();
+  const state = document.getElementById('spotConnState');
+  const who = activeName();
+  state.textContent = conn ? '● Connected as ' + who
+    : who ? '○ "' + who + '" needs sign-in' : '○ No connection selected';
+  state.style.color = conn ? '#16A34A' : 'var(--text-dim)';
+  document.getElementById('spotConnectBtn').style.display    = conn ? 'none' : '';
+  document.getElementById('spotDisconnectBtn').style.display = conn ? '' : 'none';
+  // Only a connected device has a token worth handing to another one.
+  document.getElementById('spotCodeBtn').style.display = conn ? '' : 'none';
+  if (!conn) document.getElementById('spotCodeOut').style.display = 'none';
+
+  const sheetRow = document.getElementById('spotSheetRow');
+  const noSheet  = document.getElementById('spotNoSheet');
+  if (currentFile) {
+    sheetRow.style.display = '';
+    noSheet.style.display  = 'none';
+    document.getElementById('spotSheetName').textContent = currentFile.replace(/\.csv$/i, '');
+    const input = document.getElementById('spotPlaylist');
+    if (document.activeElement !== input) input.value = playlistFor(currentFile);
+  } else {
+    sheetRow.style.display = 'none';
+    noSheet.style.display  = '';
+    document.getElementById('spotSheetName').textContent = '';
+  }
+
+  // Spell out the two things that silently block login on an older browser.
+  const secure = !!window.isSecureContext;
+  const subtle = !!(window.crypto && crypto.subtle);
+  const envEl  = document.getElementById('spotEnv');
+  envEl.textContent = (secure && subtle)
+    ? 'Environment OK — secure context, crypto available.'
+    : 'Cannot log in here: '
+      + (!secure ? 'page is not a secure context (needs HTTPS). ' : '')
+      + (!subtle ? 'crypto.subtle unavailable in this browser. ' : '');
+  envEl.style.color = (secure && subtle) ? 'var(--text-dim)' : '#B91C1C';
+
+  // Shows what this device actually knows about, so a missing playlist can be
+  // told apart from a sheet that simply isn't loaded.
+  const known = getPlaylists();
+  const names = Object.keys(known);
+  document.getElementById('spotKnown').textContent = names.length
+    ? `${names.length} playlist${names.length !== 1 ? 's' : ''} stored on this device: `
+      + names.map(n => n.replace(/\.csv$/i, '')).sort().join(', ')
+    : 'No playlists stored on this device yet.';
+
+  const btn = document.getElementById('spotifyBtn');
+  if (btn) {
+    const on = spotifyActive();
+    btn.classList.toggle('active', on);
+    btn.title = on ? 'Spotify linked for this sheet' : 'Link a Spotify playlist to this sheet';
+  }
+}
+
 // ── Init ───────────────────────────────────────────────────────────────────
 document.getElementById('btnStart').disabled = true;
 
@@ -2938,6 +3734,11 @@ window.addEventListener('resize', () => {
 
 refreshDropdown(null);
 fetchServerSheets().then(() => refreshDropdown(null));
+
+// Fold any pre-Connections single token into a named connection, then complete
+// the Spotify login hand-back if we arrived here with ?code=...
+migrateLegacyConnection();
+spotifyHandleRedirect().then(syncSpotifyUI);
 </script>
 </body>
 </html>
