@@ -2329,6 +2329,7 @@ function updateTRW(remainingSec, state) {
 function timerSeekTo(idx) {
   if (rowDurations.length === 0) return;
   const newElapsed = rowCumulative[idx] * 1000;
+  spotifySeekToRow();   // before timerTick(), which is what issues the play
 
   if (timerState === 'stopped') {
     // Update browse position without changing state — Start will begin from here
@@ -3141,6 +3142,8 @@ const SPOT_SCOPES   = 'user-read-playback-state user-modify-playback-state';
 
 let spotifyLastIdx = -1;   // last track position we asked Spotify to play
 let spotifyBusy    = false;
+let spotifySelfPaused = false;  // we paused it, so a bare resume is valid
+let spotifyPausedAt   = null;   // { idx, progressMs, uri } captured at pause
 
 function spotCfg()      { try { return JSON.parse(localStorage.getItem(SPOT_CFG_KEY) || '{}'); } catch { return {}; } }
 function saveSpotCfg(c) { localStorage.setItem(SPOT_CFG_KEY, JSON.stringify(c)); }
@@ -3462,11 +3465,17 @@ async function spotifyApi(path, opts) {
 async function ensureDevice() {
   const d = await spotifyApi('/me/player/devices');
   if (!d || !d.devices || !d.devices.length) return null;
-  const active = d.devices.find(x => x.is_active);
-  if (active) return active.id;
-  const target = d.devices[0];
-  await spotifyApi('/me/player', { method: 'PUT', body: JSON.stringify({ device_ids: [target.id], play: false }) });
-  return target.id;
+  const usable = d.devices.filter(x => !x.is_restricted);
+  if (!usable.length) return null;
+  // Prefer the device this connection was told to use — falling back to
+  // "whatever is first" could send the class to the other person's phone.
+  const chosen = spotDevice();
+  const pick = (chosen && usable.find(x => x.id === chosen))
+            || usable.find(x => x.is_active)
+            || usable[0];
+  if (pick.is_active) return pick.id;
+  await spotifyApi('/me/player', { method: 'PUT', body: JSON.stringify({ device_ids: [pick.id], play: false }) });
+  return pick.id;
 }
 
 function spotifySaveDevice() {
@@ -3516,13 +3525,17 @@ function spotifyNote(msg) {
   if (el) el.textContent = msg;
 }
 
-async function spotifyPlayRow(idx, positionMs) {
+// trackPositionMs, when given, MUST be a real position within the track as
+// reported by Spotify's own progress_ms — never a drill row's elapsed time.
+// Row durations rarely match track lengths, so seeking by row time restarts
+// songs at arbitrary points (the bug that made Resume repeat a song).
+async function spotifyPlayRow(idx, trackPositionMs) {
   if (!spotifyActive() || spotifyBusy) return;
   const uri = playlistFor(currentFile);
   spotifyBusy = true;
   try {
     const body = { context_uri: uri, offset: { position: Math.max(0, idx) } };
-    if (positionMs > 0) body.position_ms = Math.round(positionMs);
+    if (trackPositionMs > 0) body.position_ms = Math.round(trackPositionMs);
     try {
       // With a chosen device this both targets and wakes it; without one,
       // Spotify sends the command to whatever is currently active.
@@ -3535,6 +3548,8 @@ async function spotifyPlayRow(idx, positionMs) {
       await spotifyApi('/me/player/play?device_id=' + id, { method: 'PUT', body: JSON.stringify(body) });
     }
     spotifyLastIdx = idx;
+    spotifySelfPaused = false;
+    spotifyPausedAt   = null;   // stale once something is playing again
     spotifyNote('Playing track ' + (idx + 1));
   } catch (e) {
     spotifyNote('Spotify: ' + e.message);
@@ -3544,32 +3559,110 @@ async function spotifyPlayRow(idx, positionMs) {
   }
 }
 
+// Spotify discards the queue AND the progress into the track once an idle
+// device is dropped, so a long pause loses the position unless we keep our own
+// copy. Read after pausing, not before, so the value is the true paused
+// position rather than one stale by the request latency.
+async function rememberPausePosition() {
+  try {
+    const st = await spotifyApi('/me/player');
+    if (st && st.item && typeof st.progress_ms === 'number') {
+      spotifyPausedAt = {
+        idx: spotifyLastIdx,
+        progressMs: st.progress_ms,
+        uri: (st.context && st.context.uri) || ''
+      };
+    }
+  } catch (e) { /* position just won't be restorable */ }
+}
+
+// Is there still a live paused session on OUR playlist to resume?
+//
+// A bare resume is only safe if Spotify still holds the context. After a long
+// pause it drops the idle device and its queue, and a bare play then returns
+// 204 while playing nothing — so the status code cannot be trusted. Checking
+// beforehand also catches someone playing something else on that phone
+// meanwhile, where a bare resume would resume THEIR music, not the class.
+async function spotifyCanResumeInPlace() {
+  let state = null;
+  try { state = await spotifyApi('/me/player'); } catch (e) { return false; }
+  if (!state || !state.device || !state.item) return false;   // 204 = nothing loaded
+  if (state.device.is_restricted) return false;
+  const want = playlistFor(currentFile);
+  return !!(state.context && state.context.uri === want);
+}
+
+// Resume without a context or offset so Spotify picks up exactly where it
+// paused; restart the track from the top when that is not possible.
+async function spotifyResumeInPlace(idx) {
+  if (!spotifyActive() || spotifyBusy) return;
+  spotifyBusy = true;
+  let resumed = false;
+  try {
+    if (await spotifyCanResumeInPlace()) {
+      await spotifyApi('/me/player/play' + spotDeviceQuery(), { method: 'PUT' });
+      resumed = true;
+    }
+  } catch (e) {
+    console.warn('Spotify resume failed:', e);
+  } finally {
+    spotifyBusy = false;
+  }
+  spotifySelfPaused = false;
+  if (resumed) { spotifyNote('Resumed track ' + (idx + 1)); return; }
+
+  // The live session is gone, so replay the track — but seek back to the
+  // position we recorded at pause, provided it belongs to this same track of
+  // this same playlist. Otherwise start it from the top.
+  const p = spotifyPausedAt;
+  const seek = (p && p.idx === idx && p.uri === playlistFor(currentFile)) ? p.progressMs : 0;
+  spotifyNote(seek > 0
+    ? 'Session had gone idle — picking track ' + (idx + 1) + ' back up at ' + fmtSec(seek / 1000) + '.'
+    : 'Session had gone idle — restarting track ' + (idx + 1) + '.');
+  await spotifyPlayRow(idx, seek);
+}
+
 async function spotifyPauseMusic() {
   if (!spotifyActive()) return;
   try {
     await spotifyApi('/me/player/pause' + spotDeviceQuery(), { method: 'PUT' });
+    spotifySelfPaused = true;
     spotifyNote('Paused');
+    await rememberPausePosition();
   } catch (e) {
-    // 403 is the usual "already paused" response — not worth surfacing.
-    if (e.status !== 403) { spotifyNote('Spotify: ' + e.message); console.warn('Spotify pause failed:', e); }
+    // 403 is the usual "already paused" response — not worth surfacing, and it
+    // still means paused, so resuming in place is valid.
+    if (e.status === 403) { spotifySelfPaused = true; return; }
+    spotifyNote('Spotify: ' + e.message);
+    console.warn('Spotify pause failed:', e);
   }
 }
 
 // Where is the drill timer right now? Returns [rowIndex, msIntoRow].
-function currentRowPosition() {
+// Which drill row the timer is on. Only the row index is meaningful to
+// Spotify — see the note on spotifyPlayRow about row time vs track time.
+function currentRowIndex() {
   const elapsed = (timerState === 'running' && timerTickAt !== null
     ? timerElapsed + Date.now() - timerTickAt
     : timerElapsed) / 1000;
-  const idx = getActiveIdx(elapsed);
-  return [idx, Math.max(0, (elapsed - rowCumulative[idx]) * 1000)];
+  return getActiveIdx(elapsed);
 }
 
 // Start/resume music to match wherever the drill timer is.
 function spotifyFollowTimer() {
   if (!spotifyActive()) return;
-  const pos = currentRowPosition();
-  spotifyLastIdx = pos[0];
-  spotifyPlayRow(pos[0], pos[1]);
+  const idx = currentRowIndex();
+  // Same drill as when we paused → resume the track in place. Only start a
+  // track over when the row actually changed (Stop, or a skip while paused).
+  // lastIdx >= 0 matters: timerStop() fires the async pause and then resets
+  // synchronously, so selfPaused can land true after the reset. A reset index
+  // of -1 must never look like a match.
+  if (spotifySelfPaused && spotifyLastIdx >= 0 && idx === spotifyLastIdx) {
+    spotifyResumeInPlace(idx);
+    return;
+  }
+  spotifyLastIdx = idx;
+  spotifyPlayRow(idx);
 }
 
 // Called from timerTick — only fires when the drill row actually changes, so
@@ -3581,10 +3674,25 @@ function spotifySyncRow(idx) {
   // wrong track; retrying after a failed one would spam the API every 100ms.
   if (idx === spotifyLastIdx || spotifyBusy) return;
   spotifyLastIdx = idx;
-  spotifyPlayRow(idx, 0);
+  spotifyPlayRow(idx);
 }
 
-function spotifyReset() { spotifyLastIdx = -1; }
+function spotifyReset() { spotifyLastIdx = -1; spotifySelfPaused = false; spotifyPausedAt = null; }
+
+// An explicit seek (Prev / Next / swipe / clicking a row) means "(re)start this
+// drill's track" — including when the row index does not change, as when Prev
+// rewinds the song you are already on. spotifySyncRow ignores same-index calls
+// to avoid hammering the API, so clearing the remembered index is what makes
+// the next tick issue a fresh play. It also keeps that retry-while-busy
+// behaviour, rather than claiming an index whose call may never go out.
+function spotifySeekToRow() {
+  if (!spotifyActive()) return;
+  spotifyLastIdx    = -1;
+  // A seek while paused must not start audio, but Resume has to begin the
+  // track from the top instead of picking up mid-song where we paused.
+  spotifySelfPaused = false;
+  spotifyPausedAt   = null;
+}
 
 // ── Per-sheet playlist: sidecar seeding + UI ───────────────────────────────
 // Playlists/<sheet>.spotify files already exist in this project; adopt one the
