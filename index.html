@@ -188,6 +188,9 @@
 
     #fileInput { display: none; }
     #mgmtBtns { display: flex; align-items: center; gap: 0.85rem; }
+    /* Forces a wrap at this point — a zero-height full-width flex item is the
+       only way to break a flex row without reordering the DOM. */
+    .mgmt-break { display: none; }
 
 
     .server-badge {
@@ -637,6 +640,63 @@
       margin-top: 0.6rem; min-height: 1.2em;
       font-family: 'Share Tech Mono', monospace; font-size: 0.82rem; color: var(--text-secondary);
     }
+    .help-list { margin: 0.5rem 0 0 1.1rem; padding: 0; }
+    .help-list li {
+      font-size: 0.88rem; color: var(--text-secondary);
+      line-height: 1.5; margin-bottom: 0.4rem;
+    }
+    .help-list li b { color: var(--text-primary); }
+    .help-note {
+      font-weight: 400; letter-spacing: 0; text-transform: none;
+      color: var(--text-dim); font-size: 0.72rem;
+    }
+    .help-table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; }
+    .help-table td {
+      font-size: 0.84rem; color: var(--text-secondary);
+      padding: 0.35rem 0.5rem 0.35rem 0;
+      border-bottom: 1px solid var(--border); vertical-align: top;
+    }
+    .help-table td:first-child { color: var(--text-primary); font-weight: 600; width: 42%; }
+    .help-conn { display: block; margin-top: 0.2rem; }
+    .help-diag {
+      margin-top: 0.6rem; padding: 0.6rem 0.7rem;
+      background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 6px;
+      font-family: 'Share Tech Mono', monospace; font-size: 0.75rem; line-height: 1.5;
+      color: var(--text-primary);
+      white-space: pre-wrap; word-break: break-word;
+      max-height: 40vh; overflow: auto;
+    }
+    .song-check {
+      margin-top: 0.25rem;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.72rem; line-height: 1.3;
+      padding: 0.1rem 0.35rem; border-radius: 4px;
+      display: inline-block;
+    }
+    .song-check.chk-warn { background: rgba(180,83,9,0.14);  color: #B45309; }
+    .song-check.chk-bad  { background: rgba(185,28,28,0.14); color: #B91C1C; }
+    body.dark .song-check.chk-warn { color: #FBBF24; }
+    body.dark .song-check.chk-bad  { color: #FCA5A5; }
+    .pb-spot {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.78rem; color: var(--text-dim);
+      max-width: 22ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .device-phone .pb-spot { display: none; }   /* no room; the toast still shows */
+    .spot-toast {
+      position: fixed; left: 50%; bottom: 1.1rem; transform: translateX(-50%);
+      z-index: 300; max-width: min(92vw, 460px);
+      background: #B45309; color: #fff;
+      padding: 0.6rem 1rem; border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      font-size: 0.9rem; line-height: 1.35; cursor: pointer;
+    }
+    .rc-check {
+      display: flex; align-items: center; gap: 0.6rem;
+      font-size: 0.95rem; color: var(--text-primary); cursor: pointer;
+    }
+    .rc-check input { width: 1.15rem; height: 1.15rem; cursor: pointer; }
+    #rcSheet { font-size: 1rem; color: var(--accent-primary); font-weight: 600; }
     #spotCodeOut {
       width: 100%; margin-top: 0.5rem; height: 4.5rem; resize: vertical;
       padding: 0.45rem 0.6rem;
@@ -979,6 +1039,10 @@
     /* ── Tablet adaptations ── */
     .device-tablet .btn,
     .device-tablet .btn-nav { padding: 0.7rem 1.2rem; font-size: 1rem; }
+    /* Tablet buttons are larger, so Setup Help and the subtask toggle get a
+       row of their own instead of squeezing the file-management buttons. */
+    .device-tablet #mgmtBtns { flex-wrap: wrap; row-gap: 0.6rem; }
+    .device-tablet .mgmt-break { display: block; flex-basis: 100%; height: 0; margin: 0; }
     .device-tablet tbody td { padding: 1rem 1.1rem; }
     .device-tablet .trw-time { font-size: 2.6rem; }
     .device-tablet .focus-card { padding: 2rem 2rem; }
@@ -1190,6 +1254,8 @@
       <button class="btn btn-mode" onclick="exportBundle()" title="Download all sheets as a bundle file">⬇ Export Bundle</button>
       <button class="btn btn-mode" onclick="document.getElementById('bundleInput').click()" title="Load a previously exported bundle">⬆ Import Bundle</button>
       <button class="btn btn-mode" id="spotifyBtn" onclick="openSpotifyPanel()" title="Link a Spotify playlist to this sheet">♫ Spotify</button>
+      <div class="mgmt-break"></div>
+      <button class="btn btn-mode" id="helpBtn" onclick="openHelp()" title="Spotify setup — what to do on which device">? Setup Help</button>
       <button class="btn btn-mode" id="subtaskProgressBtn" onclick="toggleSubtaskProgress()" title="Toggle per-subtask progress highlighting">◧ Subtask Progress Off</button>
       <input type="file" id="bundleInput" accept=".json" style="display:none" onchange="importBundle(event)">
     </div>
@@ -1213,7 +1279,10 @@
     <div class="spot-modal">
       <div class="spot-head">
         <h2>Spotify Connect</h2>
-        <button class="btn btn-mode" onclick="closeSpotifyPanel()">✕</button>
+        <div style="display:flex;gap:0.5rem;align-items:center">
+          <button class="btn btn-mode" onclick="closeSpotifyPanel();openHelp()">? Setup help</button>
+          <button class="btn btn-mode" onclick="closeSpotifyPanel()">✕</button>
+        </div>
       </div>
 
       <div class="spot-sect">
@@ -1284,6 +1353,7 @@
           For a browser too old to show Spotify's login page. Connect on a modern browser
           pointed at <b>this same address</b>, copy the code it produces, and paste it here.
         </div>
+        <div class="spot-hint" id="spotCodeWarn" style="display:none"></div>
         <div class="spot-row" style="margin-top:0.5rem">
           <button class="btn btn-mode" id="spotCodeBtn" onclick="spotifyExportCode()">Copy code from this device</button>
         </div>
@@ -1297,6 +1367,174 @@
           The code contains a login token for your account — treat it like a password.
           Send it to yourself privately and don't publish it with the bundle.
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Setup help, organised by which device you do it on -->
+  <div class="spot-overlay" id="helpPanel" style="display:none" onclick="if(event.target===this)closeHelp()">
+    <div class="spot-modal">
+      <div class="spot-head">
+        <h2>Spotify setup</h2>
+        <button class="btn btn-mode" onclick="closeHelp()">✕</button>
+      </div>
+
+      <div class="spot-sect">
+        <div class="spot-label">Where you stand</div>
+        <div class="spot-hint" id="helpState"></div>
+      </div>
+
+      <div class="spot-sect">
+        <div class="spot-label">Diagnostics</div>
+        <div class="spot-hint">
+          Probes the live connection and the linked playlist, and reports exactly which
+          call fails and why. Useful when the playlist check refuses to run.
+        </div>
+        <div class="spot-row" style="margin-top:0.5rem">
+          <button class="btn btn-mode" onclick="spotifyDiagnose()">▶ Run diagnostics</button>
+        </div>
+        <pre class="help-diag" id="helpDiag" style="display:none"></pre>
+      </div>
+
+      <div class="spot-sect">
+        <div class="spot-label">Once, for everyone</div>
+        <ol class="help-list">
+          <li>Create an app at <b>developer.spotify.com/dashboard</b> and tick <b>Web API</b>.</li>
+          <li>Add this exact redirect URI to it: <code id="helpRedirect"></code></li>
+          <li>Under <b>User Management</b>, add every rider — full name plus the email on
+              their Spotify account. Without this their login succeeds but all playback
+              returns <b>403</b>.</li>
+          <li>Each rider needs <b>Spotify Premium</b>.</li>
+        </ol>
+      </div>
+
+      <div class="spot-sect">
+        <div class="spot-label">💻 Laptop — get the token <span class="help-note">once per rider</span></div>
+        <div class="spot-hint">
+          The iPad's Safari is too old to show Spotify's login page, so authorising happens here.
+        </div>
+        <ol class="help-list">
+          <li>Open the drill sheet at <b>the same address the iPad uses</b> — the redirect URI
+              comes from the address, so a different one won't match.</li>
+          <li>Open <b>♫ Spotify</b>. The environment line must be green.</li>
+          <li>Type the rider's name into <b>Name for a new connection</b>, press <b>Connect</b>,
+              sign in as that rider and approve.</li>
+          <li>Press <b>Copy code from this device</b> and send the code to yourself privately.</li>
+          <li>Press <b>Sign out</b> on the laptop.</li>
+        </ol>
+        <div class="spot-hint">
+          Step 5 matters: Spotify rotates these tokens, so two devices holding the same one
+          will sign each other out. The iPad should be the only holder.
+        </div>
+      </div>
+
+      <div class="spot-sect">
+        <div class="spot-label">📱 iPad — the controller <span class="help-note">once per rider</span></div>
+        <ol class="help-list">
+          <li><b>♫ Spotify</b> → <b>Transfer a connection</b>. Enter the rider's name, paste
+              the code, press <b>Add connection</b>. The Client ID comes along with it.</li>
+          <li>On that rider's iPhone, open Spotify and play anything for two seconds
+              (see below), then come back.</li>
+          <li>Select the rider in <b>Connection</b>, then under <b>Playback device</b>
+              press <b>↺ Refresh</b> and pick their iPhone.</li>
+        </ol>
+        <div class="spot-hint">
+          Each rider keeps their own playback device — Spotify devices belong to an account,
+          so they can't be shared between connections.
+        </div>
+      </div>
+
+      <div class="spot-sect">
+        <div class="spot-label">🎵 iPhone — the player</div>
+        <ol class="help-list">
+          <li>Open the <b>Spotify app</b>, signed in as that rider.</li>
+          <li><b>Play any track for two seconds, then pause.</b> Nothing registers as a
+              Spotify Connect device until it has actually played something.</li>
+          <li>Connect it to your speaker if you're using one — a Bluetooth speaker is the
+              phone's output, not a separate device, so pick the <b>iPhone</b> on the iPad.</li>
+          <li>Don't swipe Spotify closed. Backgrounded and screen-locked are both fine.</li>
+        </ol>
+      </div>
+
+      <div class="spot-sect">
+        <div class="spot-label">Before each class</div>
+        <ol class="help-list">
+          <li>Make sure that iPhone's Spotify has played something recently.</li>
+          <li>On the iPad, pick the drill sheet — the <b>Ready to ride</b> dialog opens.</li>
+          <li>Choose the <b>Rider</b>, check the <b>Speaker</b>, set subtask progress,
+              read the <b>Playlist check</b>, then <b>Let's go</b>.</li>
+          <li>Press <b>Start</b>.</li>
+        </ol>
+      </div>
+
+      <div class="spot-sect">
+        <div class="spot-label">When something's wrong</div>
+        <table class="help-table">
+          <tr><td>Red environment line</td><td>Page isn't HTTPS, or it's the wrong address</td></tr>
+          <tr><td>Spotify error page after Connect</td><td>Redirect URI doesn't match the registered one exactly</td></tr>
+          <tr><td>Login works but playback 403</td><td>Rider not on the app's allowlist, or no Premium</td></tr>
+          <tr><td>"Could not read the playlist: forbidden"</td><td>Connected before playlist access was requested — reconnect that rider</td></tr>
+          <tr><td>iPhone missing from the device list</td><td>Play something on it, then ↺ Refresh</td></tr>
+          <tr><td>Music on the wrong device</td><td>Wrong rider selected, or the chosen device went offline</td></tr>
+          <tr><td>Rider shows "(needs sign-in)"</td><td>Paste the saved code again; if refused, redo the laptop steps</td></tr>
+          <tr><td>Saved code refused</td><td>It went stale when the iPad refreshed — copy a new one from the iPad</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pre-class setup, shown when a drill sheet is selected -->
+  <div class="spot-overlay" id="rideDialog" style="display:none" onclick="if(event.target===this)closeRideCheck()">
+    <div class="spot-modal">
+      <div class="spot-head">
+        <h2>Ready to ride</h2>
+        <button class="btn btn-mode" onclick="closeRideCheck()">✕</button>
+      </div>
+      <div class="spot-hint" id="rcSheet"></div>
+      <div class="spot-hint" id="rcStale" style="display:none"></div>
+      <div class="spot-row" id="rcStaleRow" style="display:none;margin-top:0.4rem">
+        <button class="btn btn-danger" onclick="resetSheetFromServer()">↻ Use the server's copy</button>
+      </div>
+
+      <div class="spot-sect" id="rcSpotifyRows">
+        <div class="spot-label">Rider</div>
+        <div class="spot-row">
+          <select id="rcConn" onchange="rcSetConnection()"></select>
+        </div>
+
+        <div class="spot-label" style="margin-top:0.9rem">Speaker</div>
+        <div class="spot-row">
+          <select id="rcDevice" onchange="rcSetDevice()">
+            <option value="">Whatever is currently active</option>
+          </select>
+          <button class="btn btn-mode" onclick="spotifyLoadDevices()">↺</button>
+        </div>
+        <div class="spot-status" id="rcStatus"></div>
+
+        <div class="spot-label" style="margin-top:0.9rem">Playlist check</div>
+        <div class="spot-hint" id="rcCheck" style="display:none"></div>
+        <div class="spot-row" style="margin-top:0.4rem">
+          <button class="btn btn-mode" onclick="recheckPlaylist()">↺ Check playlist</button>
+        </div>
+      </div>
+
+      <div class="spot-sect" id="rcNoSpotify" style="display:none">
+        <div class="spot-hint">
+          No Spotify connection set up yet — open <b>♫ Spotify</b> to add one.
+          The drill timer works fine without it.
+        </div>
+      </div>
+
+      <div class="spot-sect">
+        <div class="spot-label">Display</div>
+        <label class="rc-check">
+          <input type="checkbox" id="rcSubtask" onchange="rcSetSubtask()">
+          <span>Show per-subtask progress</span>
+        </label>
+      </div>
+
+      <div class="spot-row" style="justify-content:flex-end;margin-top:1rem">
+        <button class="btn btn-play" onclick="closeRideCheck()">Let's go</button>
       </div>
     </div>
   </div>
@@ -1316,7 +1554,11 @@
       <span class="pb-sep">|</span>
       <span>Total&nbsp;<b id="pbTotal">—</b></span>
     </div>
+    <div class="pb-spot" id="pbSpot"></div>
   </div>
+
+  <!-- Problems need to be visible without opening a modal over the transport -->
+  <div class="spot-toast" id="spotToast" style="display:none" onclick="this.style.display='none'"></div>
 
   <main class="main" id="main">
 
@@ -1666,8 +1908,18 @@ function loadSelected() {
   focusGroups = groups;
   renderSheet(groups, name);
   spotifyReset();
-  seedPlaylistFromSidecar(name);
+  // Drop the previous sheet's track list so it can't validate this one.
+  spotifyPlaylistUri = '';
+  spotifyTracks = [];
+  // Seed first, so the dialog can tell whether this sheet has a playlist, then
+  // pull the track list so the sheet is validated before the class starts.
+  seedPlaylistFromSidecar(name).then(() => {
+    syncSpotifyUI();
+    syncRideCheck();
+    if (spotifyConnected()) loadPlaylistTracks();
+  });
   syncSpotifyUI();
+  showRideCheck();
   const dev = localStorage.getItem(DEVICE_KEY) || detectDevice();
   if ((dev === 'phone' || dev === 'tablet') && !focusActive) toggleFocusMode();
 }
@@ -2107,6 +2359,7 @@ function buildTimings(groups) {
     const total = subSecs.reduce((a, b) => a + b, 0);
     return total || (nameSec ? nameSec + 15 : 0);
   });
+  buildTrackMap(groups);
   rowCumulative = [];
   let cum = 0;
   rowDurations.forEach(d => { rowCumulative.push(cum); cum += d; });
@@ -2366,6 +2619,7 @@ function timerTick() {
 
   const activeIdx = getActiveIdx(elapsed);
   spotifySyncRow(activeIdx);   // no-op unless the drill row actually changed
+  spotifyReconcile();          // self-throttled; checks what is really playing
   const rowElapsed = elapsed - rowCumulative[activeIdx];
   const rowDur     = rowDurations[activeIdx];
   const pct        = rowDur > 0 ? Math.min(100, (rowElapsed / rowDur) * 100) : 0;
@@ -2941,6 +3195,25 @@ function importBundle(e) {
   e.target.value = '';
 }
 
+// Server versions of sheets held back because of local edits, kept so the user
+// can compare and take the server copy without deleting the sheet.
+let serverCopies = {};
+
+function resetSheetFromServer() {
+  const name = currentFile;
+  if (!name || !serverCopies[name]) return;
+  const label = name.replace(/\.csv$/i, '');
+  if (!confirm('Replace your copy of "' + label + '" with the server version?\n\n'
+             + 'Any edits you made to this sheet on this device will be lost.')) return;
+  const data = getAll();
+  data[name] = serverCopies[name];
+  saveAll(data);
+  clearDirty(name);
+  delete serverCopies[name];
+  document.getElementById('fileSelect').value = name;
+  loadSelected();
+}
+
 async function fetchServerSheets() {
   if (window.location.protocol === 'file:') return; // local file, skip
   try {
@@ -2953,8 +3226,11 @@ async function fetchServerSheets() {
     let count = 0, skipped = 0;
     Object.entries(incoming).forEach(([name, csv]) => {
       if (typeof csv !== 'string') return;
-      // Never clobber a sheet the user has edited locally.
-      if (dirty.has(name)) { skipped++; return; }
+      // Never clobber a sheet the user has edited locally — but remember which
+      // ones were held back, and keep the server's version so the divergence
+      // can be seen and undone. Silently skipping is how a stale sheet sat on
+      // the iPad disagreeing with its playlist.
+      if (dirty.has(name)) { skipped++; serverCopies[name] = csv; return; }
       data[name] = csv; count++;
     });
     if (count > 0) {
@@ -3092,6 +3368,9 @@ function syncSubtaskProgressButton() {
   btn.innerHTML = subtaskProgressOn
     ? '◨ <span class="btn-label">Subtask Progress On</span>'
     : '◧ <span class="btn-label">Subtask Progress Off</span>';
+  // Keep the pre-class dialog's checkbox in step when toggled from the header.
+  const rc = document.getElementById('rcSubtask');
+  if (rc) rc.checked = subtaskProgressOn;
 }
 
 function toggleSubtaskProgress() {
@@ -3138,12 +3417,52 @@ const SPOT_LIST_KEY = 'drillsheet_playlists';
 const SPOT_DEV_KEY   = 'drillsheet_spotify_dev';    // legacy, migrated away
 const SPOT_ACCTS_KEY = 'drillsheet_spotify_accounts';
 const SPOT_ACTIVE_KEY = 'drillsheet_spotify_active';
-const SPOT_SCOPES   = 'user-read-playback-state user-modify-playback-state';
+// Playback works on a private playlist with only the two player scopes, but
+// READING its tracks (for validation and drift reconciliation) needs
+// playlist-read-private. Adding a scope requires re-authorising: a refresh
+// carries the scopes the token was originally granted.
+const SPOT_SCOPES   = 'user-read-playback-state user-modify-playback-state '
+                    + 'playlist-read-private playlist-read-collaborative';
 
-let spotifyLastIdx = -1;   // last track position we asked Spotify to play
+// Intent and reality are tracked separately. The old code recorded the row
+// index BEFORE the play was confirmed, so any failed command left us
+// permanently convinced we were on a track Spotify had never been asked to
+// play — and since drift was only ever detected by comparing the sheet to that
+// belief, nothing could put it right again.
+let spotifyLastIdx  = -1;      // believed playing — set ONLY on a confirmed play
+let spotifyWantIdx  = -1;      // what the drill sheet wants playing
+let spotifyWantSeek = 0;       // ms into that track (resume only)
+let spotifyRetryAt  = 0;       // back off until this time after a failure
+let spotifyLastPlayAt = 0;     // when a play last succeeded
 let spotifyBusy    = false;
 let spotifySelfPaused = false;  // we paused it, so a bare resume is valid
 let spotifyPausedAt   = null;   // { idx, progressMs, uri } captured at pause
+
+// Cached track list for the current playlist, used to check what is ACTUALLY
+// playing rather than trusting our own bookkeeping, and to validate the sheet.
+let spotifyPlaylistUri = '';
+let spotifyTracks      = [];   // [{ uri, name, ms }]
+let spotifyTracksError = '';   // why the last fetch failed, if it did
+let spotifyNextCheckAt = 0;
+
+// Group index -> playlist position. NOT the same as the group index: a row with
+// a drill but no song (an annotation like "Note: used to be seated sprints")
+// still forms a group, but has no track behind it, and shifts every song after
+// it by one. -1 means this row has no track of its own.
+let spotifyRowToTrack = [];
+
+function buildTrackMap(groups) {
+  spotifyRowToTrack = [];
+  let pos = 0;
+  groups.forEach((g, i) => {
+    spotifyRowToTrack[i] = (g.song && g.song.trim()) ? pos++ : -1;
+  });
+}
+
+function trackPosFor(idx) {
+  const p = spotifyRowToTrack[idx];
+  return (p === undefined) ? -1 : p;
+}
 
 function spotCfg()      { try { return JSON.parse(localStorage.getItem(SPOT_CFG_KEY) || '{}'); } catch { return {}; } }
 function saveSpotCfg(c) { localStorage.setItem(SPOT_CFG_KEY, JSON.stringify(c)); }
@@ -3311,28 +3630,60 @@ async function spotifyHandleRedirect() {
   clean();
 }
 
+// Errors carry `code` so callers can tell a definitive rejection by Spotify
+// (only `invalid_grant` means the refresh token is actually dead) from a
+// transient failure — a sleeping wifi, a 5xx, a rate limit — which must NOT
+// cost the user their connection.
 async function spotifyTokenRequest(body) {
   const form = new URLSearchParams(body);
   form.set('client_id', spotCfg().clientId);
-  const res = await fetch('https://accounts.spotify.com/api/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: form
-  });
+  let res;
+  try {
+    res = await fetch('https://accounts.spotify.com/api/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: form
+    });
+  } catch (e) {
+    // fetch only rejects at the network level; Spotify never saw the request.
+    const err = new Error('network unreachable');
+    err.code = 'network';
+    throw err;
+  }
   const json = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(json.error_description || json.error || ('HTTP ' + res.status));
+  if (!res.ok) {
+    const err = new Error(json.error_description || json.error || ('HTTP ' + res.status));
+    err.status = res.status;
+    err.code   = json.error || ('http_' + res.status);
+    throw err;
+  }
   return json;
 }
 
 function storeToken(t) {
   const prev = spotTok();
+  const prevRefresh = prev && prev.refresh_token;
   saveSpotTok({
     access_token: t.access_token,
     // PKCE refresh tokens rotate — keep the old one if this response omits it.
-    refresh_token: t.refresh_token || (prev && prev.refresh_token),
+    refresh_token: t.refresh_token || prevRefresh,
     expires_at: Date.now() + (t.expires_in || 3600) * 1000 - 60000
   });
+  // Rotation kills any connection code copied earlier: it carries the previous
+  // refresh token, which Spotify has now superseded. Flag it so the panel can
+  // ask for a fresh copy rather than letting a dead code sit in someone's notes.
+  if (t.refresh_token && prevRefresh && t.refresh_token !== prevRefresh) {
+    updateActive({ codeStale: true });
+  }
+  // Remember what was actually granted, so a connection made before a scope was
+  // added can be spotted before it fails with a bare "forbidden".
+  if (t.scope) updateActive({ scope: t.scope });
   syncSpotifyUI();
+}
+
+function hasPlaylistScope() {
+  const a = activeAccount();
+  return !!(a && a.scope && a.scope.indexOf('playlist-read-private') >= 0);
 }
 
 // ── Connection transfer ────────────────────────────────────────────────────
@@ -3351,6 +3702,9 @@ function spotifyExportCode() {
   try {
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(code);
     else document.execCommand('copy');
+    // This code carries the current refresh token, so the stale warning clears.
+    updateActive({ codeStale: false });
+    syncSpotifyUI();
     spotifyNote('Connection code copied — paste it on the other device.');
   } catch {
     spotifyNote('Select the code above and copy it manually.');
@@ -3389,12 +3743,16 @@ function spotifyDisconnect() {
   syncSpotifyUI();
 }
 
-function spotifySwitchConnection() {
-  setActiveName(document.getElementById('spotConn').value);
+function spotifySetConnection(name) {
+  setActiveName(name);
   syncSpotifyUI();
+  syncRideCheck();
   if (spotifyConnected()) spotifyLoadDevices();
-  const n = activeName();
-  spotifyNote(n ? 'Switched to "' + n + '".' : 'No connection selected.');
+  spotifyNote(name ? 'Switched to "' + name + '".' : 'No connection selected.');
+}
+
+function spotifySwitchConnection() {
+  spotifySetConnection(document.getElementById('spotConn').value);
 }
 
 function spotifyRemoveConnection() {
@@ -3431,14 +3789,24 @@ async function spotifyToken() {
     storeToken(fresh);
     return fresh.access_token;
   } catch (e) {
-    console.warn('Spotify refresh failed:', e.message);
-    spotifyDisconnect();
+    // Only Spotify explicitly rejecting the grant means the token is dead.
+    // Anything else — no network because the iPad's wifi slept, a 5xx, a 429 —
+    // used to wipe the connection and force the whole transfer again.
+    if (e.code === 'invalid_grant') {
+      spotifyWarn('Spotify sign-in expired for "' + activeName() + '" — reconnect this rider.');
+      console.warn('Spotify refresh rejected, signing out:', e.message);
+      spotifyDisconnect();
+    } else {
+      spotifyWarn('Spotify unreachable (' + e.message + ') — connection kept, will retry.');
+      console.warn('Spotify refresh failed, keeping token:', e);
+      syncSpotifyUI();
+    }
     return null;
   }
 }
 
 // ── Web API calls ──────────────────────────────────────────────────────────
-async function spotifyApi(path, opts) {
+async function spotifyApi(path, opts, retried) {
   opts = opts || {};
   const token = await spotifyToken();
   if (!token) return null;
@@ -3449,7 +3817,25 @@ async function spotifyApi(path, opts) {
     headers: headers
   });
   if (res.status === 204 || res.status === 202) return {};
-  if (res.status === 401) { spotifyDisconnect(); return null; }
+  if (res.status === 401) {
+    // The access token was rejected — that alone says nothing about the refresh
+    // token. Force one refresh and retry before concluding anything; only
+    // spotifyToken() decides whether to sign out, and only on invalid_grant.
+    if (!retried) {
+      updateActive({ expires_at: 0 });
+      return spotifyApi(path, opts, true);
+    }
+    return null;
+  }
+  if (res.status === 429) {
+    // Rate limited. Previously this surfaced as a generic failure, the command
+    // was dropped, and playback silently drifted for the rest of the class.
+    const wait = Math.min(60, parseInt(res.headers.get('Retry-After') || '5', 10) || 5);
+    spotifyRetryAt = Date.now() + (wait + 1) * 1000;
+    const err = new Error('rate limited, retrying in ' + wait + 's');
+    err.status = 429;
+    throw err;
+  }
   const json = await res.json().catch(() => ({}));
   if (!res.ok) {
     const err = new Error((json.error && json.error.message) || ('HTTP ' + res.status));
@@ -3478,15 +3864,30 @@ async function ensureDevice() {
   return pick.id;
 }
 
+function spotifySetDevice(value, label) {
+  saveSpotDevice(value);
+  deviceSelects().forEach(s => { s.value = value; });
+  spotifyNote(value ? 'Targeting ' + label : 'Following the active device.');
+}
+
+function selLabel(sel) { return sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].text : ''; }
+
 function spotifySaveDevice() {
-  saveSpotDevice(document.getElementById('spotDevice').value);
   const sel = document.getElementById('spotDevice');
-  spotifyNote(sel.value ? 'Targeting ' + sel.options[sel.selectedIndex].text : 'Following the active device.');
+  spotifySetDevice(sel.value, selLabel(sel));
+}
+
+// Both the Spotify panel and the pre-class dialog show a device picker; fill
+// whichever are present so they can never disagree.
+function deviceSelects() {
+  return ['spotDevice', 'rcDevice']
+    .map(id => document.getElementById(id))
+    .filter(Boolean);
 }
 
 async function spotifyLoadDevices() {
-  const sel = document.getElementById('spotDevice');
-  if (!sel || !spotifyConnected()) return;
+  const sels = deviceSelects();
+  if (!sels.length || !spotifyConnected()) return;
   spotifyNote('Looking for devices…');
   let list = [];
   try {
@@ -3496,33 +3897,53 @@ async function spotifyLoadDevices() {
     spotifyNote('Could not list devices: ' + e.message);
     return;
   }
-  const chosen = spotDevice();
-  sel.innerHTML = '<option value="">Whatever is currently active</option>';
-  list.forEach(dev => {
-    const o = document.createElement('option');
-    o.value = dev.id;
-    o.textContent = dev.name + ' (' + dev.type + ')'
-      + (dev.is_active ? ' — active' : '')
-      + (dev.is_restricted ? ' — restricted' : '');
-    sel.appendChild(o);
-  });
+  let chosen = spotDevice();
   // A device that has since been closed is no longer selectable; fall back to
   // following the active one rather than silently targeting something gone.
-  if (chosen && !list.some(d => d.id === chosen)) {
-    saveSpotDevice('');
-    sel.value = '';
-    spotifyNote('Previously chosen device is offline — following the active device.');
-    return;
-  }
-  sel.value = chosen;
-  spotifyNote(list.length
-    ? list.length + ' device' + (list.length !== 1 ? 's' : '') + ' found.'
-    : 'No devices found — open Spotify on the device you want to use.');
+  const gone = chosen && !list.some(d => d.id === chosen);
+  if (gone) { saveSpotDevice(''); chosen = ''; }
+
+  sels.forEach(sel => {
+    sel.innerHTML = '<option value="">Whatever is currently active</option>';
+    list.forEach(dev => {
+      const o = document.createElement('option');
+      o.value = dev.id;
+      o.textContent = dev.name + ' (' + dev.type + ')'
+        + (dev.is_active ? ' — active' : '')
+        + (dev.is_restricted ? ' — restricted' : '');
+      sel.appendChild(o);
+    });
+    sel.value = chosen;
+  });
+
+  spotifyNote(gone
+    ? 'Previously chosen device is offline — following the active device.'
+    : list.length
+      ? list.length + ' device' + (list.length !== 1 ? 's' : '') + ' found.'
+      : 'No devices found — open Spotify on the device you want to use.');
 }
 
+// Routine chatter goes inline — including the playback bar, which is the only
+// one of these visible while the transport is in use.
 function spotifyNote(msg) {
-  const el = document.getElementById('spotStatus');
-  if (el) el.textContent = msg;
+  ['spotStatus', 'rcStatus', 'pbSpot'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = msg;
+  });
+}
+
+// Problems additionally raise a banner: every panel is a modal covering the
+// transport, so a failure mid-class was previously invisible until the wrong
+// song gave it away.
+let spotToastTimer = null;
+function spotifyWarn(msg) {
+  spotifyNote(msg);
+  const el = document.getElementById('spotToast');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.display = '';
+  clearTimeout(spotToastTimer);
+  spotToastTimer = setTimeout(() => { el.style.display = 'none'; }, 8000);
 }
 
 // trackPositionMs, when given, MUST be a real position within the track as
@@ -3531,10 +3952,14 @@ function spotifyNote(msg) {
 // songs at arbitrary points (the bug that made Resume repeat a song).
 async function spotifyPlayRow(idx, trackPositionMs) {
   if (!spotifyActive() || spotifyBusy) return;
+  // Annotation rows have no track; playing "position idx" for them would shift
+  // every following song by one.
+  const pos = trackPosFor(idx);
+  if (pos < 0) return;
   const uri = playlistFor(currentFile);
   spotifyBusy = true;
   try {
-    const body = { context_uri: uri, offset: { position: Math.max(0, idx) } };
+    const body = { context_uri: uri, offset: { position: pos } };
     if (trackPositionMs > 0) body.position_ms = Math.round(trackPositionMs);
     try {
       // With a chosen device this both targets and wakes it; without one,
@@ -3544,19 +3969,35 @@ async function spotifyPlayRow(idx, trackPositionMs) {
       // 404 NO_ACTIVE_DEVICE — nothing is listening yet; wake a device and retry once.
       if (e.status !== 404) throw e;
       const id = await ensureDevice();
-      if (!id) { spotifyNote('No Spotify device found — open Spotify on a device first.'); return; }
+      if (!id) { spotifyWarn('No Spotify device found — open Spotify on a device first.'); return; }
       await spotifyApi('/me/player/play?device_id=' + id, { method: 'PUT', body: JSON.stringify(body) });
     }
-    spotifyLastIdx = idx;
+    // Claimed only now that Spotify has actually accepted the command.
+    spotifyLastIdx    = idx;
+    spotifyWantSeek   = 0;
+    spotifyLastPlayAt = Date.now();
+    spotifyRetryAt    = 0;
     spotifySelfPaused = false;
     spotifyPausedAt   = null;   // stale once something is playing again
     spotifyNote('Playing track ' + (idx + 1));
   } catch (e) {
-    spotifyNote('Spotify: ' + e.message);
+    // Leave spotifyLastIdx alone so this row is retried rather than forgotten.
+    if (!spotifyRetryAt || spotifyRetryAt < Date.now()) spotifyRetryAt = Date.now() + 3000;
+    spotifyWarn('Spotify: ' + e.message);
     console.warn('Spotify play failed:', e);
   } finally {
     spotifyBusy = false;
   }
+}
+
+// Issues whatever the sheet currently wants, if anything is outstanding and we
+// are not busy or backing off. Called from every tick, so a failed command is
+// retried until it lands instead of being dropped.
+function spotifyFlush() {
+  if (!spotifyActive()) return;
+  if (spotifyWantIdx < 0 || spotifyWantIdx === spotifyLastIdx) return;
+  if (spotifyBusy || Date.now() < spotifyRetryAt) return;
+  spotifyPlayRow(spotifyWantIdx, spotifyWantSeek);
 }
 
 // Spotify discards the queue AND the progress into the track once an idle
@@ -3576,50 +4017,222 @@ async function rememberPausePosition() {
   } catch (e) { /* position just won't be restorable */ }
 }
 
-// Is there still a live paused session on OUR playlist to resume?
-//
-// A bare resume is only safe if Spotify still holds the context. After a long
-// pause it drops the idle device and its queue, and a bare play then returns
-// 204 while playing nothing — so the status code cannot be trusted. Checking
-// beforehand also catches someone playing something else on that phone
-// meanwhile, where a bare resume would resume THEIR music, not the class.
-async function spotifyCanResumeInPlace() {
-  let state = null;
-  try { state = await spotifyApi('/me/player'); } catch (e) { return false; }
-  if (!state || !state.device || !state.item) return false;   // 204 = nothing loaded
-  if (state.device.is_restricted) return false;
-  const want = playlistFor(currentFile);
-  return !!(state.context && state.context.uri === want);
-}
-
-// Resume without a context or offset so Spotify picks up exactly where it
-// paused; restart the track from the top when that is not possible.
-async function spotifyResumeInPlace(idx) {
-  if (!spotifyActive() || spotifyBusy) return;
-  spotifyBusy = true;
-  let resumed = false;
+// The playlist's track URIs, so drift can be detected against what is really
+// playing. Also the only place the sheet's row count and the playlist's length
+// are ever compared — a mismatch there silently breaks the row-to-track map.
+async function loadPlaylistTracks() {
+  const uri = playlistFor(currentFile);
+  if (!uri) { renderPlaylistCheck(); return; }
+  if (uri === spotifyPlaylistUri) { renderPlaylistCheck(); return; }
+  // Deliberately no scope pre-check: a PUBLIC playlist is readable with any
+  // token, so refusing to try would break the simplest fix (making it public)
+  // until every rider had been re-authorised. Try, and explain any 403.
+  spotifyTracksError = '';
+  renderPlaylistCheck();   // shows "Reading the playlist…"
+  const id = uri.split(':').pop();
+  const tracks = [];
+  // /items replaced /tracks in Spotify's 2026 migration; the old path now 403s
+  // for development-mode apps. Falls back to /tracks if /items isn't there.
+  // No fields projection on purpose: the 2026 migration renamed each entry's
+  // `track` to `item`, and a projection naming the wrong one returns empty
+  // objects while still answering 200 — a silent way to parse nothing.
+  let path = '/playlists/' + id + '/items?limit=100';
+  const FIELDS = '?limit=100';
+  let usedLegacy = false;
   try {
-    if (await spotifyCanResumeInPlace()) {
-      await spotifyApi('/me/player/play' + spotDeviceQuery(), { method: 'PUT' });
-      resumed = true;
+    while (path && tracks.length < 1000) {
+      let page;
+      try {
+        page = await spotifyApi(path);
+      } catch (e) {
+        // Older/other deployments may still only have /tracks.
+        if (!usedLegacy && !tracks.length && (e.status === 404 || e.status === 403)) {
+          usedLegacy = true;
+          path = '/playlists/' + id + '/tracks' + FIELDS;
+          continue;
+        }
+        throw e;
+      }
+      if (!page || !page.items) break;
+      page.items.forEach(it => {
+        const t = it.item || it.track || {};   // `item` since the 2026 rename
+        tracks.push({ uri: t.uri || '', name: t.name || '', ms: t.duration_ms || 0 });
+      });
+      path = page.next ? page.next.replace('https://api.spotify.com/v1', '') : null;
     }
   } catch (e) {
-    console.warn('Spotify resume failed:', e);
-  } finally {
-    spotifyBusy = false;
+    console.warn('Could not read playlist tracks:', e);
+    if (e.status === 403) {
+      // playlist-read-private covers YOUR OWN private playlists. Another
+      // account's private playlist stays unreadable however many scopes you
+      // hold — a shared link lets you play it, not inspect it.
+      let owner = '';
+      try {
+        const meta = await spotifyApi('/playlists/' + id + '?fields=owner(display_name)');
+        if (meta && meta.owner) owner = meta.owner.display_name || '';
+      } catch (_) { /* metadata is usually forbidden too */ }
+      const scopeHint = hasPlaylistScope() ? ''
+        : ' ("' + activeName() + '" was also connected before playlist access was requested, '
+          + 'so reconnecting that rider may be needed too.)';
+      // Spotify returns playlist items only to the owner or a collaborator —
+      // being public makes no difference to this.
+      spotifyTracksError = (owner
+        ? 'Spotify only returns a playlist’s songs to its owner or a collaborator, and this '
+          + 'one belongs to ' + owner + '. Ask ' + owner + ' to make it collaborative, or use a '
+          + 'copy saved to "' + activeName() + '"’s own account.'
+        : 'Spotify only returns a playlist’s songs to its owner or a collaborator, and this one '
+          + 'belongs to another account.')
+        + ' Playback and the class itself are unaffected — only the song check and drift '
+        + 'correction need this.' + scopeHint;
+    } else {
+      spotifyTracksError = e.message || 'request failed';
+    }
+    renderPlaylistCheck();
+    return;
   }
-  spotifySelfPaused = false;
-  if (resumed) { spotifyNote('Resumed track ' + (idx + 1)); return; }
+  spotifyPlaylistUri = uri;
+  spotifyTracks      = tracks;
+  spotifyTracksError = tracks.length ? '' : 'playlist is empty or unreadable';
+  renderPlaylistCheck();
+}
 
-  // The live session is gone, so replay the track — but seek back to the
-  // position we recorded at pause, provided it belongs to this same track of
-  // this same playlist. Otherwise start it from the top.
+// Manual re-check, for when the connection or playlist changed after loading.
+function recheckPlaylist() {
+  spotifyPlaylistUri = '';
+  spotifyTracks = [];
+  spotifyTracksError = '';
+  if (!spotifyConnected()) { renderPlaylistCheck(); return; }
+  loadPlaylistTracks();
+}
+
+// ── Playlist validation ────────────────────────────────────────────────────
+// The sheet stays the source of truth for timings; this only reports where it
+// disagrees with the real playlist so the CSV can be corrected by hand.
+function normTitle(s) {
+  return (s || '').toLowerCase().replace(/\(.*?\)|\[.*?\]/g, '').replace(/[^a-z0-9]/g, '');
+}
+
+// Deliberately loose — sheets abbreviate and misspell song titles freely, so
+// this is only meant to catch a whole row lining up with the wrong track.
+function looseMatch(a, b) {
+  const x = normTitle(a), y = normTitle(b);
+  if (!x || !y) return true;
+  return x.indexOf(y.slice(0, 8)) >= 0 || y.indexOf(x.slice(0, 8)) >= 0;
+}
+
+function validatePlaylist() {
+  if (!spotifyTracks.length || !focusGroups.length) return null;
+  const songRows = focusGroups.filter(g => g.song && g.song.trim()).length;
+  const rep = { songRows, tracks: spotifyTracks.length, rows: [], countMismatch: songRows !== spotifyTracks.length };
+  focusGroups.forEach((g, i) => {
+    const pos = trackPosFor(i);
+    if (pos < 0) return;
+    const t = spotifyTracks[pos];
+    if (!t) { rep.rows.push({ i, kind: 'missing-track' }); return; }
+    const m = g.song.match(/\((\d+):(\d+)\)/);
+    const sheetSec = m ? parseInt(m[1]) * 60 + parseInt(m[2]) : 0;
+    const realSec  = Math.round(t.ms / 1000);
+    const name     = g.song.replace(/\(.*?\)\s*$/, '').trim();
+    if (!looseMatch(name, t.name)) {
+      rep.rows.push({ i, kind: 'name', sheet: name, real: t.name, realSec });
+    } else if (!sheetSec) {
+      rep.rows.push({ i, kind: 'no-duration', real: t.name, realSec });
+    } else if (Math.abs(sheetSec - realSec) > 3) {
+      rep.rows.push({ i, kind: 'duration', sheetSec, realSec, real: t.name });
+    }
+  });
+  return rep;
+}
+
+// Badges the table's Song cells and summarises in the pre-class dialog.
+function renderPlaylistCheck() {
+  const sum = document.getElementById('rcCheck');
+  document.querySelectorAll('#tableBody tr.ex-row .song-check').forEach(el => el.remove());
+  if (!sum) return;
+
+  // Always say why there is no result — silently hiding made the whole check
+  // look like it had never run.
+  const say = (msg, color) => { sum.style.display = ''; sum.style.color = color; sum.textContent = msg; };
+  const dim = 'var(--text-secondary)';
+  if (!currentFile)                  { sum.style.display = 'none'; return; }
+  if (!playlistFor(currentFile))     { say('No playlist linked to this sheet — nothing to check.', dim); return; }
+  if (!spotifyConnected())           { say('Connect a rider to check this sheet against the playlist.', dim); return; }
+  if (spotifyTracksError)            { say('Could not read the playlist: ' + spotifyTracksError, '#B91C1C'); return; }
+  if (!spotifyTracks.length)         { say('Reading the playlist…', dim); return; }
+
+  const rep = validatePlaylist();
+  if (!rep) { sum.style.display = 'none'; return; }
+
+  const rows = document.querySelectorAll('#tableBody tr.ex-row');
+  rep.rows.forEach(p => {
+    const tr = rows[p.i];
+    if (!tr) return;
+    const cell = tr.querySelector('td[data-field="song"]');
+    if (!cell) return;
+    const b = document.createElement('div');
+    b.className = 'song-check ' + (p.kind === 'duration' ? 'chk-warn' : 'chk-bad');
+    b.textContent =
+      p.kind === 'duration'    ? 'Spotify: ' + fmtSec(p.realSec) :
+      p.kind === 'no-duration' ? 'No time in sheet · Spotify: ' + fmtSec(p.realSec) :
+      p.kind === 'name'        ? 'Playlist has: ' + p.real + ' (' + fmtSec(p.realSec) + ')' :
+                                 'No track at this position';
+    cell.appendChild(b);
+  });
+
+  sum.style.display = '';
+  if (rep.countMismatch) {
+    sum.style.color = '#B91C1C';
+    sum.textContent = '⚠ Sheet has ' + rep.songRows + ' songs but the playlist has '
+      + rep.tracks + ' tracks — they will not line up.';
+  } else if (rep.rows.length) {
+    sum.style.color = '#B45309';
+    sum.textContent = '⚠ ' + rep.rows.length + ' of ' + rep.songRows
+      + ' songs disagree with the playlist — see the highlighted rows in table mode.';
+  } else {
+    sum.style.color = '#16A34A';
+    sum.textContent = '✓ All ' + rep.songRows + ' songs match the playlist.';
+  }
+}
+
+// Compare what Spotify is really playing against the drill row, and correct.
+// Without this, any divergence — a dropped command, a natural auto-advance, a
+// skip on the phone — is permanent, because everything else only ever compares
+// the sheet to our own bookkeeping.
+async function spotifyReconcile() {
+  if (!spotifyActive() || timerState !== 'running' || spotifyBusy) return;
+  const now = Date.now();
+  if (now < spotifyNextCheckAt) return;
+  spotifyNextCheckAt = now + 5000;          // set before awaiting, so ticks don't stack
+  if (now - spotifyLastPlayAt < 4000) return;   // let a fresh command settle first
+  if (!spotifyTracks.length || spotifyWantIdx < 0) return;
+  const pos = trackPosFor(spotifyWantIdx);
+  if (pos < 0) return;
+
+  let st = null;
+  try { st = await spotifyApi('/me/player'); } catch (e) { return; }
+  if (!st || !st.item || !st.is_playing) return;
+
+  const expected = spotifyTracks[pos] && spotifyTracks[pos].uri;
+  if (!expected) return;
+  // Compare by track URI, not by index: a playlist with a repeated song would
+  // make position lookups ambiguous and trigger spurious corrections.
+  if (st.item.uri === expected) return;
+  if (st.context && st.context.uri !== playlistFor(currentFile)) {
+    spotifyWarn('Spotify moved to another playlist — pulling it back.');
+  } else {
+    spotifyWarn('Drifted off track ' + (spotifyWantIdx + 1) + ' — correcting.');
+  }
+  spotifyLastIdx = -1;   // force spotifyFlush to reissue
+  spotifyFlush();
+}
+
+// How far into the track were we when paused, if that still applies to the row
+// about to play? Returns 0 when unknown or when the row changed meanwhile.
+function pausedSeekFor(idx) {
   const p = spotifyPausedAt;
-  const seek = (p && p.idx === idx && p.uri === playlistFor(currentFile)) ? p.progressMs : 0;
-  spotifyNote(seek > 0
-    ? 'Session had gone idle — picking track ' + (idx + 1) + ' back up at ' + fmtSec(seek / 1000) + '.'
-    : 'Session had gone idle — restarting track ' + (idx + 1) + '.');
-  await spotifyPlayRow(idx, seek);
+  if (!spotifySelfPaused || !p) return 0;
+  if (p.idx !== idx || p.uri !== playlistFor(currentFile)) return 0;
+  return p.progressMs || 0;
 }
 
 async function spotifyPauseMusic() {
@@ -3630,15 +4243,14 @@ async function spotifyPauseMusic() {
     spotifyNote('Paused');
     await rememberPausePosition();
   } catch (e) {
-    // 403 is the usual "already paused" response — not worth surfacing, and it
-    // still means paused, so resuming in place is valid.
-    if (e.status === 403) { spotifySelfPaused = true; return; }
-    spotifyNote('Spotify: ' + e.message);
+    // 403 is the usual "already paused" response — not worth surfacing, but it
+    // still means paused, so the position is worth recording for the resume.
+    if (e.status === 403) { spotifySelfPaused = true; await rememberPausePosition(); return; }
+    spotifyWarn('Spotify: ' + e.message);
     console.warn('Spotify pause failed:', e);
   }
 }
 
-// Where is the drill timer right now? Returns [rowIndex, msIntoRow].
 // Which drill row the timer is on. Only the row index is meaningful to
 // Spotify — see the note on spotifyPlayRow about row time vs track time.
 function currentRowIndex() {
@@ -3649,35 +4261,39 @@ function currentRowIndex() {
 }
 
 // Start/resume music to match wherever the drill timer is.
+// Start or resume music to match wherever the drill timer is.
+//
+// Resume is deliberately a full context play seeked to the position recorded at
+// pause, NOT a bare resume. A bare resume cannot be verified: iOS Spotify tears
+// down its audio session a couple of seconds after pausing, while Spotify's
+// server-side state lingers for minutes — so the command returns 204 and plays
+// nothing, and no amount of checking beforehand can tell the two apart. Seeking
+// reproduces the same position, always wakes the device, and needs no guesswork.
 function spotifyFollowTimer() {
   if (!spotifyActive()) return;
-  const idx = currentRowIndex();
-  // Same drill as when we paused → resume the track in place. Only start a
-  // track over when the row actually changed (Stop, or a skip while paused).
-  // lastIdx >= 0 matters: timerStop() fires the async pause and then resets
-  // synchronously, so selfPaused can land true after the reset. A reset index
-  // of -1 must never look like a match.
-  if (spotifySelfPaused && spotifyLastIdx >= 0 && idx === spotifyLastIdx) {
-    spotifyResumeInPlace(idx);
-    return;
-  }
-  spotifyLastIdx = idx;
-  spotifyPlayRow(idx);
+  loadPlaylistTracks();          // cached; only fetches when the playlist changes
+  const idx  = currentRowIndex();
+  spotifyWantIdx  = idx;
+  spotifyWantSeek = pausedSeekFor(idx);
+  spotifyLastIdx  = -1;          // always reissue on Start/Resume
+  spotifyRetryAt  = 0;
+  if (spotifyWantSeek > 0) spotifyNote('Resuming track ' + (idx + 1) + ' at ' + fmtSec(spotifyWantSeek / 1000) + '.');
+  spotifyFlush();
 }
 
 // Called from timerTick — only fires when the drill row actually changes, so
 // each row boundary re-syncs the playlist and drift never accumulates.
 function spotifySyncRow(idx) {
   if (!spotifyActive() || timerState !== 'running') return;
-  // Bail while a call is in flight WITHOUT claiming the index, so the next tick
-  // retries. Claiming it before a successful attempt would strand us on the
-  // wrong track; retrying after a failed one would spam the API every 100ms.
-  if (idx === spotifyLastIdx || spotifyBusy) return;
-  spotifyLastIdx = idx;
-  spotifyPlayRow(idx);
+  if (idx !== spotifyWantIdx) { spotifyWantIdx = idx; spotifyWantSeek = 0; }
+  spotifyFlush();
 }
 
-function spotifyReset() { spotifyLastIdx = -1; spotifySelfPaused = false; spotifyPausedAt = null; }
+function spotifyReset() {
+  spotifyLastIdx = -1; spotifyWantIdx = -1; spotifyWantSeek = 0;
+  spotifyRetryAt = 0; spotifyLastPlayAt = 0;
+  spotifySelfPaused = false; spotifyPausedAt = null;
+}
 
 // An explicit seek (Prev / Next / swipe / clicking a row) means "(re)start this
 // drill's track" — including when the row index does not change, as when Prev
@@ -3688,6 +4304,9 @@ function spotifyReset() { spotifyLastIdx = -1; spotifySelfPaused = false; spotif
 function spotifySeekToRow() {
   if (!spotifyActive()) return;
   spotifyLastIdx    = -1;
+  spotifyWantIdx    = -1;   // next tick recomputes and reissues
+  spotifyWantSeek   = 0;
+  spotifyRetryAt    = 0;
   // A seek while paused must not start audio, but Resume has to begin the
   // track from the top instead of picking up mid-song where we paused.
   spotifySelfPaused = false;
@@ -3708,6 +4327,218 @@ async function seedPlaylistFromSidecar(sheetName) {
     const uri  = normalizePlaylist(text.trim());
     if (uri) { setPlaylistFor(sheetName, uri); syncSpotifyUI(); }
   } catch { /* no sidecar — fine */ }
+}
+
+// ── Setup help ─────────────────────────────────────────────────────────────
+// Reports live state alongside the instructions, so it doubles as a checklist
+// rather than being documentation that quietly goes out of date.
+function openHelp()  { syncHelp(); document.getElementById('helpPanel').style.display = 'flex'; }
+function closeHelp() { document.getElementById('helpPanel').style.display = 'none'; }
+
+// Probes each step separately so a failure names itself, rather than collapsing
+// into one opaque "forbidden" with no way to tell which assumption was wrong.
+async function spotifyDiagnose() {
+  const out = document.getElementById('helpDiag');
+  if (!out) return;
+  out.style.display = '';
+  out.textContent = 'Running…';
+  const L = [];
+  const acct = activeAccount() || {};
+
+  L.push('Connection : ' + (activeName() || '(none selected)'));
+  L.push('Token      : ' + (acct.refresh_token ? 'present' : 'MISSING — needs sign-in'));
+  L.push('Scopes     : ' + (acct.scope || '(none recorded — predates scope tracking)'));
+  L.push('Has read   : ' + (hasPlaylistScope() ? 'yes' : 'NO — playlist-read-private not granted'));
+
+  try {
+    const me = await spotifyApi('/me');
+    if (me) L.push('Account    : ' + (me.display_name || me.id) + '  id=' + me.id
+                 + '  product=' + (me.product || '?'));
+    else    L.push('Account    : no token available');
+  } catch (e) { L.push('Account    : FAILED ' + (e.status || '') + ' ' + e.message); }
+
+  const uri = playlistFor(currentFile);
+  L.push('Sheet      : ' + (currentFile || '(none loaded)'));
+  L.push('Playlist   : ' + (uri || '(none linked)'));
+
+  if (uri) {
+    const id = uri.split(':').pop();
+    try {
+      // The 2026 migration renamed the playlist object's `tracks` to `items`,
+      // so the count lives at items.total now.
+      const p = await spotifyApi('/playlists/' + id
+        + '?fields=name,public,collaborative,owner(display_name,id),items.total');
+      const totalObj = p.items || p.tracks;   // `items` post-migration
+      const total = (totalObj && typeof totalObj.total === 'number') ? totalObj.total : null;
+      L.push('Meta       : OK "' + (p.name || '?') + '"  public=' + p.public
+           + '  collaborative=' + p.collaborative
+           + '  owner=' + ((p.owner && (p.owner.display_name || p.owner.id)) || '?')
+           + '  tracks=' + (total === null ? '?' : total));
+      const songRows = focusGroups.filter(g => g.song && g.song.trim()).length;
+      if (total !== null && total !== songRows) {
+        L.push('MISMATCH   : playlist has ' + total + ' tracks, sheet has ' + songRows
+             + ' songs — this alone shifts songs out of step.');
+      }
+    } catch (e) { L.push('Meta       : FAILED ' + (e.status || '') + ' ' + e.message); }
+    // /items is the current endpoint; /tracks was deprecated and 403s for
+    // development-mode apps. Probe both so the output says which one answers.
+    try {
+      // Report the decoded entry, not just the status: a 200 whose shape we
+      // misread looks identical to success but yields nothing usable.
+      const one = await spotifyApi('/playlists/' + id + '/items?limit=1');
+      const e0  = one && one.items && one.items[0];
+      const t0  = e0 && (e0.item || e0.track);
+      L.push('Items      : OK — first entry '
+        + (t0 ? '"' + (t0.name || '?') + '" ' + fmtSec((t0.duration_ms || 0) / 1000)
+              : 'UNREADABLE, keys=[' + Object.keys(e0 || {}).join(',') + ']'));
+    } catch (e) {
+      L.push('Items      : FAILED ' + (e.status || '') + ' ' + e.message
+        + (e.status === 403 && !hasPlaylistScope()
+            ? '  <-- playlist-read-private NOT granted' : ''));
+    }
+    try {
+      await spotifyApi('/playlists/' + id + '/tracks?limit=1');
+      L.push('Tracks     : OK (legacy endpoint)');
+    } catch (e) {
+      L.push('Tracks     : FAILED ' + (e.status || '') + ' ' + e.message + ' (legacy, expected)');
+    }
+  }
+
+  // Spotify only returns playlist ITEMS for playlists you own or collaborate
+  // on. Reading one of our own proves whether a 403 above is that rule rather
+  // than a scope, endpoint or app problem.
+  try {
+    const mine = await spotifyApi('/me/playlists?limit=1');
+    const own  = mine && mine.items && mine.items[0];
+    if (!own) {
+      L.push('Own list   : none found to test with');
+    } else {
+      L.push('Own list   : "' + (own.name || own.id) + '"');
+      try {
+        await spotifyApi('/playlists/' + own.id + '/items?limit=1');
+        L.push('Own items  : OK — so contents are blocked only for playlists this account '
+             + 'does not own or collaborate on');
+      } catch (e) {
+        L.push('Own items  : FAILED ' + (e.status || '') + ' ' + e.message
+             + ' — contents blocked even for own playlists');
+      }
+    }
+  } catch (e) { L.push('Own list   : FAILED ' + (e.status || '') + ' ' + e.message); }
+
+  L.push('Sheet rows : ' + rowDurations.length + ' (' + spotifyTracks.length + ' tracks cached)');
+  out.textContent = L.join('\n');
+}
+
+function syncHelp() {
+  const red = document.getElementById('helpRedirect');
+  if (red) red.textContent = spotifyRedirectUri();
+  const el = document.getElementById('helpState');
+  if (!el) return;
+
+  const parts = [];
+  const secure = window.isSecureContext && window.crypto && crypto.subtle;
+  parts.push(secure
+    ? '<span style="color:#16A34A">✓</span> This device can authorise (secure context).'
+    : '<span style="color:#B91C1C">✕</span> This device <b>cannot</b> authorise — not served over HTTPS, '
+      + 'or the browser is too old. Use the laptop for the login steps.');
+
+  const accts = getAccounts();
+  const names = Object.keys(accts).sort();
+  if (!names.length) {
+    parts.push('<span style="color:var(--text-dim)">○</span> No riders set up yet.');
+  } else {
+    const active = activeName();
+    names.forEach(n => {
+      const a = accts[n] || {};
+      let mark, note;
+      if (!a.refresh_token)                                   { mark = '<span style="color:#B91C1C">✕</span>'; note = 'needs sign-in'; }
+      else if (!a.scope || a.scope.indexOf('playlist-read-private') < 0)
+                                                              { mark = '<span style="color:#B45309">⚠</span>'; note = 'playback works, but reconnect to enable the playlist check'; }
+      else                                                    { mark = '<span style="color:#16A34A">✓</span>'; note = 'ready'; }
+      parts.push('<span class="help-conn">' + mark + ' <b>' + escH(n) + '</b> — ' + note
+        + (n === active ? ' <i>(selected)</i>' : '') + '</span>');
+    });
+  }
+  el.innerHTML = parts.join('<br>');
+}
+
+// ── Pre-class setup dialog ─────────────────────────────────────────────────
+// Pops when a drill sheet is selected: pick whose Spotify plays, on which
+// speaker, and whether subtask progress is shown — the three things that
+// change per class.
+function rcSetConnection() { spotifySetConnection(document.getElementById('rcConn').value); }
+
+function rcSetDevice() {
+  const sel = document.getElementById('rcDevice');
+  spotifySetDevice(sel.value, selLabel(sel));   // reports via spotifyNote
+}
+
+function rcSetSubtask() {
+  // Reuse the existing toggle so the button, storage and re-render stay in step.
+  if (document.getElementById('rcSubtask').checked !== subtaskProgressOn) toggleSubtaskProgress();
+}
+
+function syncRideCheck() {
+  const dlg = document.getElementById('rideDialog');
+  if (!dlg) return;
+  document.getElementById('rcSheet').textContent = currentFile ? currentFile.replace(/\.csv$/i, '') : '';
+  document.getElementById('rcSubtask').checked = subtaskProgressOn;
+
+  // Warn when this device is holding a locally-edited sheet that differs from
+  // the published one — otherwise the divergence is completely invisible.
+  const stale    = document.getElementById('rcStale');
+  const staleRow = document.getElementById('rcStaleRow');
+  const server   = currentFile && serverCopies[currentFile];
+  if (server) {
+    let mine = rowDurations.length, theirs = mine;
+    try { theirs = groupRows(parseCSV(server)).length; } catch (e) { /* keep counts equal */ }
+    stale.style.display = ''; staleRow.style.display = '';
+    stale.style.color = '#B45309';
+    stale.textContent = '⚠ This device has its own edited copy of this sheet ('
+      + mine + ' drill' + (mine !== 1 ? 's' : '') + '), so the published version ('
+      + theirs + ') is being ignored'
+      + (mine !== theirs ? ' — which is why the songs may not line up.' : '.');
+  } else {
+    stale.style.display = 'none'; staleRow.style.display = 'none';
+  }
+
+  const accts = Object.keys(getAccounts()).sort();
+  document.getElementById('rcSpotifyRows').style.display = accts.length ? '' : 'none';
+  document.getElementById('rcNoSpotify').style.display   = accts.length ? 'none' : '';
+  if (!accts.length) return;
+
+  const sel = document.getElementById('rcConn');
+  sel.innerHTML = '<option value="">— No connection —</option>';
+  accts.forEach(n => {
+    const o = document.createElement('option');
+    o.value = n; o.textContent = n;
+    sel.appendChild(o);
+  });
+  sel.value = activeName();
+
+  const st = document.getElementById('rcStatus');
+  if (!spotifyConnected()) {
+    st.textContent = activeName() ? '"' + activeName() + '" needs sign-in — open ♫ Spotify.'
+                                  : 'Pick a rider to choose a speaker.';
+  } else if (!playlistFor(currentFile)) {
+    st.textContent = 'This sheet has no playlist linked — the timer will run without music.';
+  } else {
+    st.textContent = '';
+  }
+}
+
+function showRideCheck() {
+  const dlg = document.getElementById('rideDialog');
+  if (!dlg) return;
+  syncRideCheck();
+  renderPlaylistCheck();   // shows results already in hand; refreshes when the fetch lands
+  dlg.style.display = 'flex';
+  if (spotifyConnected()) spotifyLoadDevices();
+}
+
+function closeRideCheck() {
+  const dlg = document.getElementById('rideDialog');
+  if (dlg) dlg.style.display = 'none';
 }
 
 function openSpotifyPanel() {
@@ -3773,6 +4604,17 @@ function syncSpotifyUI() {
   // Only a connected device has a token worth handing to another one.
   document.getElementById('spotCodeBtn').style.display = conn ? '' : 'none';
   if (!conn) document.getElementById('spotCodeOut').style.display = 'none';
+
+  const acct = activeAccount();
+  const warn = document.getElementById('spotCodeWarn');
+  if (conn && acct && acct.codeStale) {
+    warn.style.display = '';
+    warn.style.color = '#B45309';
+    warn.textContent = '⚠ "' + who + '" has refreshed its login since it was transferred, '
+      + 'so any code you saved earlier no longer works. Copy a new one to keep on file.';
+  } else {
+    warn.style.display = 'none';
+  }
 
   const sheetRow = document.getElementById('spotSheetRow');
   const noSheet  = document.getElementById('spotNoSheet');
