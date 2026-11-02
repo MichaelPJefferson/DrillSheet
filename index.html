@@ -3434,6 +3434,10 @@ let spotifyWantIdx  = -1;      // what the drill sheet wants playing
 let spotifyWantSeek = 0;       // ms into that track (resume only)
 let spotifyRetryAt  = 0;       // back off until this time after a failure
 let spotifyLastPlayAt = 0;     // when a play last succeeded
+let spotifyPlaySeek   = 0;     // ms into the track that play started at
+let spotifyFixIdx     = -1;    // row the drift corrections below are counted for
+let spotifyFixCount   = 0;     // corrections issued for that row so far
+const SPOT_MAX_FIXES  = 2;     // then stop restarting the song and say so
 let spotifyBusy    = false;
 let spotifySelfPaused = false;  // we paused it, so a bare resume is valid
 let spotifyPausedAt   = null;   // { idx, progressMs, uri } captured at pause
@@ -3976,6 +3980,7 @@ async function spotifyPlayRow(idx, trackPositionMs) {
     spotifyLastIdx    = idx;
     spotifyWantSeek   = 0;
     spotifyLastPlayAt = Date.now();
+    spotifyPlaySeek   = body.position_ms || 0;
     spotifyRetryAt    = 0;
     spotifySelfPaused = false;
     spotifyPausedAt   = null;   // stale once something is playing again
@@ -4036,8 +4041,12 @@ async function loadPlaylistTracks() {
   // No fields projection on purpose: the 2026 migration renamed each entry's
   // `track` to `item`, and a projection naming the wrong one returns empty
   // objects while still answering 200 — a silent way to parse nothing.
-  let path = '/playlists/' + id + '/items?limit=100';
-  const FIELDS = '?limit=100';
+  // market=from_token applies track relinking: where the playlist's copy of a
+  // song isn't licensed here, Spotify plays a substitute with a different URI.
+  // Without it we stored URIs that never match what is really playing, and
+  // reconcile restarted those songs every few seconds.
+  let path = '/playlists/' + id + '/items?limit=100&market=from_token';
+  const FIELDS = '?limit=100&market=from_token';
   let usedLegacy = false;
   try {
     while (path && tracks.length < 1000) {
@@ -4056,7 +4065,11 @@ async function loadPlaylistTracks() {
       if (!page || !page.items) break;
       page.items.forEach(it => {
         const t = it.item || it.track || {};   // `item` since the 2026 rename
-        tracks.push({ uri: t.uri || '', name: t.name || '', ms: t.duration_ms || 0 });
+        tracks.push({
+          uri: t.uri || '', name: t.name || '', ms: t.duration_ms || 0,
+          linked: (t.linked_from && t.linked_from.uri) || '',   // original, if relinked
+          playable: t.is_playable !== false                     // only set with a market
+        });
       });
       path = page.next ? page.next.replace('https://api.spotify.com/v1', '') : null;
     }
@@ -4129,6 +4142,7 @@ function validatePlaylist() {
     if (pos < 0) return;
     const t = spotifyTracks[pos];
     if (!t) { rep.rows.push({ i, kind: 'missing-track' }); return; }
+    if (!t.playable) { rep.rows.push({ i, kind: 'unplayable', real: t.name }); return; }
     const m = g.song.match(/\((\d+):(\d+)\)/);
     const sheetSec = m ? parseInt(m[1]) * 60 + parseInt(m[2]) : 0;
     const realSec  = Math.round(t.ms / 1000);
@@ -4175,6 +4189,7 @@ function renderPlaylistCheck() {
       p.kind === 'duration'    ? 'Spotify: ' + fmtSec(p.realSec) :
       p.kind === 'no-duration' ? 'No time in sheet · Spotify: ' + fmtSec(p.realSec) :
       p.kind === 'name'        ? 'Playlist has: ' + p.real + ' (' + fmtSec(p.realSec) + ')' :
+      p.kind === 'unplayable'  ? 'Unavailable on Spotify — it will be skipped' :
                                  'No track at this position';
     cell.appendChild(b);
   });
@@ -4208,15 +4223,34 @@ async function spotifyReconcile() {
   const pos = trackPosFor(spotifyWantIdx);
   if (pos < 0) return;
 
+  const want = spotifyTracks[pos];
+  if (!want || !want.uri) return;
+  // Once the track's own length has run out, Spotify moving on to the next song
+  // is the playlist doing its job — the row is just longer than its song.
+  // Pulling it back here is what restarted songs from the top near row ends.
+  if (want.ms && now >= spotifyLastPlayAt + want.ms - spotifyPlaySeek - 3000) return;
+  // Already corrected this row as often as is useful; a song that will not stay
+  // put (unplayable, region-locked) would otherwise restart forever.
+  if (spotifyFixIdx === spotifyWantIdx && spotifyFixCount > SPOT_MAX_FIXES) return;
+
   let st = null;
-  try { st = await spotifyApi('/me/player'); } catch (e) { return; }
+  try { st = await spotifyApi('/me/player?market=from_token'); } catch (e) { return; }
   if (!st || !st.item || !st.is_playing) return;
 
-  const expected = spotifyTracks[pos] && spotifyTracks[pos].uri;
-  if (!expected) return;
   // Compare by track URI, not by index: a playlist with a repeated song would
-  // make position lookups ambiguous and trigger spurious corrections.
-  if (st.item.uri === expected) return;
+  // make position lookups ambiguous and trigger spurious corrections. Either
+  // side may be a relinked substitute, so the original URIs count as a match.
+  const playing = [st.item.uri, st.item.linked_from && st.item.linked_from.uri];
+  if (playing.includes(want.uri) || (want.linked && playing.includes(want.linked))) return;
+
+  if (spotifyFixIdx !== spotifyWantIdx) { spotifyFixIdx = spotifyWantIdx; spotifyFixCount = 0; }
+  if (spotifyFixCount >= SPOT_MAX_FIXES) {
+    spotifyFixCount++;   // past the limit: the early return above now applies
+    spotifyWarn('Track ' + (spotifyWantIdx + 1) + ' keeps drifting — leaving Spotify alone '
+      + 'until the next drill. Check that song in the playlist.');
+    return;
+  }
+  spotifyFixCount++;
   if (st.context && st.context.uri !== playlistFor(currentFile)) {
     spotifyWarn('Spotify moved to another playlist — pulling it back.');
   } else {
@@ -4277,6 +4311,7 @@ function spotifyFollowTimer() {
   spotifyWantSeek = pausedSeekFor(idx);
   spotifyLastIdx  = -1;          // always reissue on Start/Resume
   spotifyRetryAt  = 0;
+  spotifyFixIdx   = -1;
   if (spotifyWantSeek > 0) spotifyNote('Resuming track ' + (idx + 1) + ' at ' + fmtSec(spotifyWantSeek / 1000) + '.');
   spotifyFlush();
 }
@@ -4291,8 +4326,9 @@ function spotifySyncRow(idx) {
 
 function spotifyReset() {
   spotifyLastIdx = -1; spotifyWantIdx = -1; spotifyWantSeek = 0;
-  spotifyRetryAt = 0; spotifyLastPlayAt = 0;
+  spotifyRetryAt = 0; spotifyLastPlayAt = 0; spotifyPlaySeek = 0;
   spotifySelfPaused = false; spotifyPausedAt = null;
+  spotifyFixIdx = -1; spotifyFixCount = 0;
 }
 
 // An explicit seek (Prev / Next / swipe / clicking a row) means "(re)start this
@@ -4307,6 +4343,7 @@ function spotifySeekToRow() {
   spotifyWantIdx    = -1;   // next tick recomputes and reissues
   spotifyWantSeek   = 0;
   spotifyRetryAt    = 0;
+  spotifyFixIdx     = -1;   // a deliberate restart earns fresh corrections
   // A seek while paused must not start audio, but Resume has to begin the
   // track from the top instead of picking up mid-song where we paused.
   spotifySelfPaused = false;
